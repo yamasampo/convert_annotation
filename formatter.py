@@ -45,3 +45,12 @@ def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
     ]
 
     return matched_df.loc[:, columns_order]
+
+def concat_list_of_PairedGenomicCoord_to_DataFrame(paired_gen_coord_list):
+    concat_list = []
+
+    for paired_gen_coord in paired_gen_coord_list:
+        tmp_df = from_PairedGenomicCoord_to_DataFrame(paired_gen_coord)
+        concat_list.append(tmp_df)
+
+    return pd.concat(concat_list).reset_index()
