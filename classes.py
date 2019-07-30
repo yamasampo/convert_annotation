@@ -158,7 +158,7 @@ class ConvertCoordinates(Database):
         
         # If query is not found, return -9
         if len(conv_dicts) == 0:
-            return GenomicCoordinate('', -9, -9, -9)
+            return [GenomicCoordinate('', -9, -9, -9)]
         
         # Collect results
         results = []
