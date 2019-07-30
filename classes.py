@@ -180,11 +180,7 @@ class ConvertCoordinates(Database):
             
             results.append(result_coord)
             
-        if len(results) == 1:
-            return query_coord, results[0]
-        
-        else:
-            return query_coord, results
+        return query_coord, results
 
     def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
         query_coords = [self.query_parser(q) for q in querys]
