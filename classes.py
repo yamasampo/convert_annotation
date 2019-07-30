@@ -119,8 +119,6 @@ GenomicCoordinate = namedtuple(
     'GenomicCoordinate', ['chromosome', 'start', 'end', 'version']
 )
 class ConvertCoordinates(Database):
-    """ Create an instance for coordinate conversion between annoatation 
-    versions. """
     def __init__(self, df, description=''):
         super().__init__(df, description) # use __init__() of parent class
     
@@ -134,20 +132,33 @@ class ConvertCoordinates(Database):
             f'v{query_version}_start': f'lte{query_coord.start}',
             f'v{query_version}_end': f'gte{query_coord.end}',
         }
-        # Assumes only one pair will hit
-        conv_dict = self.filter(**filt_kw).iloc[0].to_dict()
+        conv_dicts = self.filter(**filt_kw).T.to_dict()
         
-        # Get position of the query coordinates
-        # Assumes continuous coordinates in both versions
-        ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
-        ix2 = query_coord.end - conv_dict[f'v{query_version}_end']
+        # Collect results
+        results = []
         
-        # Refer to the other version
-        s2 = range(conv_dict[f'v{ref_version}_start'], conv_dict[f'v{ref_version}_end'])[ix1]
-        e2 = range(conv_dict[f'v{ref_version}_start'], conv_dict[f'v{ref_version}_end'])[ix2]
+        for i, conv_dict in conv_dicts.items():
+            # Get position of the query coordinates
+            # Assumes continuous coordinates in both versions
+            ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
+            ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
+
+            # Refer to the other version
+            ref_range = range(conv_dict[f'v{ref_version}_start'], 
+                              conv_dict[f'v{ref_version}_end']+1)
+            s2 = ref_range[ix1]
+            e2 = ref_range[ix2]
+            
+            result_coord = GenomicCoordinate(
+                conv_dict[f'v{ref_version}_chr'], s2, e2, ref_version)
+            
+            results.append(result_coord)
+            
+        if len(results) == 1:
+            return results[0]
         
-        return GenomicCoordinate(
-            conv_dict[f'v{ref_version}_chr'], s2, e2, ref_version)
+        else:
+            return results
     
     def query_parser(self, query, version):
         chrname = query.split(':')[0]
@@ -155,3 +166,5 @@ class ConvertCoordinates(Database):
         end = int(query.split(':')[1].split('..')[1])
         
         return GenomicCoordinate(chrname, start, end, version)
+        
+    
