@@ -119,8 +119,9 @@ GenomicCoordinate = namedtuple(
     'GenomicCoordinate', ['chromosome', 'start', 'end', 'version']
 )
 class ConvertCoordinates(Database):
-    def __init__(self, df, description=''):
+    def __init__(self, df, version1, version2, description=''):
         super().__init__(df, description) # use __init__() of parent class
+        self.version1, self.version2 = version1, version2
     
     def get_dmel_coordinates(self, query_version, ref_version, query):
         # Parse input query
@@ -133,7 +134,7 @@ class ConvertCoordinates(Database):
             f'v{query_version}_end': f'gte{query_coord.end}',
         }
         conv_dicts = self.filter(**filt_kw).T.to_dict()
-
+        
         # If query is not found, return -9
         if len(conv_dicts) == 0:
             return GenomicCoordinate('', -9, -9, -9)
@@ -170,5 +171,10 @@ class ConvertCoordinates(Database):
         end = int(query.split(':')[1].split('..')[1])
         
         return GenomicCoordinate(chrname, start, end, version)
-        
     
+    def __repr__(self):
+        return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
+            name=type(self).__name__, desc=self.description, 
+            v1=self.version1, v2=self.version2,
+            size=self.__len__()
+        )
