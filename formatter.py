@@ -20,3 +20,28 @@ def from_GenomicCoord_list_to_DataFrame(gen_coord_list):
             'version': version_list
         }
     )
+
+def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
+    matched_df = from_GenomicCoord_list_to_DataFrame(
+        paired_gen_coord.reference)
+    
+    matched_df.rename(
+        columns={
+            'chromosome': 'ref_chromosome',
+            'start': 'ref_start',
+            'end': 'ref_end',
+            'version': 'ref_version'
+        }, 
+        inplace=True)
+    
+    matched_df['query_chromosome'] = paired_gen_coord.query.chromosome
+    matched_df['query_start'] = paired_gen_coord.query.start
+    matched_df['query_end'] = paired_gen_coord.query.end
+    matched_df['query_version'] = paired_gen_coord.query.version
+
+    columns_order = [
+        'query_chromosome', 'query_start', 'query_end', 'query_version',
+        'ref_chromosome', 'ref_start', 'ref_end', 'ref_version'
+    ]
+
+    return matched_df.loc[:, columns_order]
