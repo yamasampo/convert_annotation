@@ -118,6 +118,11 @@ class Database(Mapping):
 GenomicCoordinate = namedtuple(
     'GenomicCoordinate', ['chromosome', 'start', 'end', 'version']
 )
+
+PairedGenomicCoord = namedtuple(
+    'PairedGenomicCoord': ['query', 'reference']
+)
+
 class ConvertCoordinates(Database):
     def __init__(self, df, version1, version2, description=''):
         super().__init__(df, description) # use __init__() of parent class
@@ -180,18 +185,18 @@ class ConvertCoordinates(Database):
             
             results.append(result_coord)
             
-        return query_coord, results
+        return PairedGenomicCoord(query_coord, results)
 
     def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
         query_coords = [self.query_parser(q) for q in querys]
-        out_d = dict.fromkeys(query_coords)
+        result_pairs = []
 
         for query_coord in query_coords:
-            _, result = self.get_dmel_coordinates(
+            result = self.get_dmel_coordinates(
                 query_version, ref_version, query_coord)
-            out_d[query_coord] = result
+            result_pairs.append(result)
 
-        return out_d
+        return result_pairs
     
     def query_parser(self, query, version):
         chrname = query.split(':')[0]
