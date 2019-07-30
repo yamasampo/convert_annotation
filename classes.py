@@ -122,6 +122,24 @@ class ConvertCoordinates(Database):
     def __init__(self, df, version1, version2, description=''):
         super().__init__(df, description) # use __init__() of parent class
         self.version1, self.version2 = version1, version2
+
+        # Check if all columns are contined in DataFrame
+        self.check_columns()
+        
+    def check_columns(self):
+        assert f'v{self.version1}_chr' in self.df.columns, \
+            f'Column not found: "v{self.version1}_chr" was expected.'
+        assert f'v{self.version1}_start' in self.df.columns, \
+            f'Column not found: "v{self.version1}_start" was expected.'
+        assert f'v{self.version1}_end' in self.df.columns, \
+            f'Column not found: "v{self.version1}_end" was expected.'
+        
+        assert f'v{self.version2}_chr' in self.df.columns, \
+            f'Column not found: "v{self.version2}_chr" was expected.'
+        assert f'v{self.version2}_start' in self.df.columns, \
+            f'Column not found: "v{self.version2}_start" was expected.'
+        assert f'v{self.version2}_end' in self.df.columns, \
+            f'Column not found: "v{self.version2}_end" was expected.'
     
     def get_dmel_coordinates(self, query_version, ref_version, query):
         # Parse input query
