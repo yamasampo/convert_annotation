@@ -143,7 +143,10 @@ class ConvertCoordinates(Database):
     
     def get_dmel_coordinates(self, query_version, ref_version, query):
         # Parse input query
-        query_coord = self.query_parser(query, query_version)
+        if isinstance(query, str):
+            query_coord = self.query_parser(query, query_version)
+        elif isinstance(query, GenomicCoordinate):
+            query_coord = query
         
         # Find query coordinate in DataFrame
         filt_kw = {
@@ -178,10 +181,21 @@ class ConvertCoordinates(Database):
             results.append(result_coord)
             
         if len(results) == 1:
-            return results[0]
+            return query_coord, results[0]
         
         else:
-            return results
+            return query_coord, results
+
+    def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
+        query_coords = [self.query_parser(q) for q in querys]
+        out_d = dict.fromkeys(query_coords)
+
+        for query_coord in query_coords:
+            _, result = self.get_dmel_coordinates(
+                query_version, ref_version, query_coord)
+            out_d[query_coord] = result
+
+        return out_d
     
     def query_parser(self, query, version):
         chrname = query.split(':')[0]
