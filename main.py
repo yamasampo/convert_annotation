@@ -1,9 +1,10 @@
 from convert_annotation import read
 from convert_annotation import formatter
 
-def main(map_csv_path, version1, version2, query_path, out_csv_path, description=''):
+def main(map_csv_path, query_version, ref_version, 
+    query_path, out_csv_path, description=''):
     cc = read.from_CSV_to_ConvertCoordinates(
-        map_csv_path, version1, version2, description='')
+        map_csv_path, query_version, ref_version, description='')
 
     querys = read.parse_query_list(query_path)
 
