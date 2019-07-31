@@ -41,17 +41,22 @@ def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
 
     code = 0
     if len(matched_df.index) == 1:
-        if paired_gen_coord.query.chromosome != \
-                paired_gen_coord.reference[0].chromosome:
-            code += 1
+        # If query coord was found in conversion table
+        if paired_gen_coord.reference[0].start != -9:
+            # If segment coordinate changed to different chromosome
+            if paired_gen_coord.query.chromosome != \
+                    paired_gen_coord.reference[0].chromosome:
+                code += 1
+            # If segment coordinate was different on the same chromosome
+            elif paired_gen_coord.query.start != \
+                    paired_gen_coord.reference[0].start:
+                code += 2
 
-        if paired_gen_coord.reference[0].start == -9:
+        # If query segment coord was not found in conversion table
+        else:
             code += 4
 
-        elif paired_gen_coord.query.start != \
-                paired_gen_coord.reference[0].start:
-            code += 2
-
+    # If multiple segments found
     elif len(matched_df.index) > 1:
         code += 8
 
