@@ -209,7 +209,7 @@ class ConvertCoordinates(Database):
         return PairedGenomicCoord(query_coord, results)
 
     def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
-        query_coords = [self.query_parser(q) for q in querys]
+        query_coords = [self.query_parser(q, query_version) for q in querys]
         result_pairs = []
 
         for query_coord in query_coords:
