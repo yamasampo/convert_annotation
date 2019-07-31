@@ -6,7 +6,7 @@ def from_CSV_to_ConvertCoordinates(csv_path, version1, version2, description='')
     return ConvertCoordinates(
 		pd.read_csv(csv_path), version1, version2, description)
 
-def parse_query_list(path, expect='itemnum', avoid=['itemnum', '/*']):
+def parse_query_list(path, expect='itemnum: ', avoid=['itemnum', '/*']):
 	""" Returns a list of query names that are written in a given file.
 	Parameter
 	---------
