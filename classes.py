@@ -120,7 +120,7 @@ GenomicCoordinate = namedtuple(
 )
 
 PairedGenomicCoord = namedtuple(
-    'PairedGenomicCoord': ['query', 'reference']
+    'PairedGenomicCoord', ['query', 'reference']
 )
 
 class ConvertCoordinates(Database):
