@@ -53,4 +53,4 @@ def concat_list_of_PairedGenomicCoord_to_DataFrame(paired_gen_coord_list):
         tmp_df = from_PairedGenomicCoord_to_DataFrame(paired_gen_coord)
         concat_list.append(tmp_df)
 
-    return pd.concat(concat_list).reset_index()
+    return pd.concat(concat_list).reset_index(drop=True)
