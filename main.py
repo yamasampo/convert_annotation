@@ -7,8 +7,10 @@ def main(map_csv_path, version1, version2, query_path, out_csv_path, description
 
     querys = read.parse_query_list(query_path)
 
-    gen_coord_list = cc.recursively_get_dmel_coordinates(query_version, ref_version, querys)
+    paired_gen_coord_list = cc.recursively_get_dmel_coordinates(
+        query_version, ref_version, querys)
 
-    out_df = formatter.from_GenomicCoord_list_to_DataFrame(gen_coord_list)
+    out_df = formatter.concat_list_of_PairedGenomicCoord_to_DataFrame(
+        paired_gen_coord_list)
 
-
+    out_df.to_csv(out_csv_path)
