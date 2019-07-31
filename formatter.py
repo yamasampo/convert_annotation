@@ -39,9 +39,28 @@ def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
     matched_df['query_end'] = paired_gen_coord.query.end
     matched_df['query_version'] = paired_gen_coord.query.version
 
+    code = 0
+    if len(matched_df.index) == 1:
+        if paired_gen_coord.query.chromosome != \
+                paired_gen_coord.reference[0].chromosome:
+            code += 1
+
+        if paired_gen_coord.reference[0].start == -9:
+            code += 4
+
+        elif paired_gen_coord.query.start != \
+                paired_gen_coord.reference[0].start:
+            code += 2
+
+    elif len(matched_df.index) > 1:
+        code += 8
+
+    matched_df['conversion_code'] = code
+
     columns_order = [
         'query_chromosome', 'query_start', 'query_end', 'query_version',
-        'ref_chromosome', 'ref_start', 'ref_end', 'ref_version'
+        'ref_chromosome', 'ref_start', 'ref_end', 'ref_version', 
+        'conversion_code'
     ]
 
     return matched_df.loc[:, columns_order]
@@ -49,8 +68,10 @@ def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
 def concat_list_of_PairedGenomicCoord_to_DataFrame(paired_gen_coord_list):
     concat_list = []
 
-    for paired_gen_coord in paired_gen_coord_list:
+    for i, paired_gen_coord in enumerate(paired_gen_coord_list):
         tmp_df = from_PairedGenomicCoord_to_DataFrame(paired_gen_coord)
+        tmp_df['pair_id'] = i+1
+
         concat_list.append(tmp_df)
 
     return pd.concat(concat_list).reset_index(drop=True)
