@@ -130,6 +130,7 @@ class ConvertCoordinates(Database):
 
         # Check if all columns are contined in DataFrame
         self.check_columns()
+        self.check_same_len()
         
     def check_columns(self):
         assert f'v{self.version1}_chr' in self.df.columns, \
@@ -145,6 +146,15 @@ class ConvertCoordinates(Database):
             f'Column not found: "v{self.version2}_start" was expected.'
         assert f'v{self.version2}_end' in self.df.columns, \
             f'Column not found: "v{self.version2}_end" was expected.'
+
+    def check_same_len(self):
+        v1_start = f'v{self.version1}_start'
+        v1_end = f'v{self.version1}_end'
+        v2_start = f'v{self.version2}_start'
+        v2_end = f'v{self.version2}_end'
+
+        assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
+             x[v2_end] - x[v2_start], axis=1).all()
     
     def get_dmel_coordinates(self, query_version, ref_version, query):
         # Parse input query
