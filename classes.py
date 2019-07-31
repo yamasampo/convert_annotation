@@ -163,7 +163,10 @@ class ConvertCoordinates(Database):
         
         # If query is not found, return -9
         if len(conv_dicts) == 0:
-            return [GenomicCoordinate('', -9, -9, -9)]
+            return PairedGenomicCoord(
+                query_coord, 
+                [GenomicCoordinate('', -9, -9, -9)]
+            )
         
         # Collect results
         results = []
@@ -177,9 +180,17 @@ class ConvertCoordinates(Database):
             # Refer to the other version
             ref_range = range(conv_dict[f'v{ref_version}_start'], 
                               conv_dict[f'v{ref_version}_end']+1)
-            s2 = ref_range[ix1]
-            e2 = ref_range[ix2]
-            
+            try:
+                s2 = ref_range[ix1]
+            except IndexError:
+                raise Exception('IndexError found: {} '\
+                    'while length is {}'.format(ix1, len(ref_range)))
+            try:
+                e2 = ref_range[ix2]
+            except IndexError:
+                raise Exception('IndexError found: {} '\
+                    'while length is {}'.format(ix2, len(ref_range)))
+
             result_coord = GenomicCoordinate(
                 conv_dict[f'v{ref_version}_chr'], s2, e2, ref_version)
             
