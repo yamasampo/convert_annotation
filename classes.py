@@ -156,7 +156,7 @@ class ConvertCoordinates(Database):
         assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
              x[v2_end] - x[v2_start], axis=1).all()
     
-    def get_dmel_coordinates(self, query_version, ref_version, query):
+    def get_dmel_coordinates(self, query):
         # Parse input query
         if isinstance(query, str):
             query_coord = self.query_parser(query, query_version)
@@ -218,13 +218,26 @@ class ConvertCoordinates(Database):
             result_pairs.append(result)
 
         return result_pairs
-    
-    def query_parser(self, query, version):
-        chrname = query.split(':')[0]
-        start = int(query.split(':')[1].split('..')[0])
-        end = int(query.split(':')[1].split('..')[1])
-        
-        return GenomicCoordinate(chrname, start, end, version)
+
+    @staticmethod
+    def gencoord_parser(gencoord_str):
+		""" Returns GenomicCoordinate object for input string.
+		Parameter
+		---------
+		gencoord_str: str
+			gencoord_str has to be in the format of 
+			"{chr}:{start}..{start}:{version}"
+		
+		Return
+		------
+		GenomicCoordinate object
+        """
+		chrname = gencoord_str.split(':')[0]
+		start = int(gencoord_str.split(':')[1].split('..')[0])
+		end = int(gencoord_str.split(':')[1].split('..')[1])
+		version = int(gencoord_str.split(':')[2])
+		
+		return GenomicCoordinate(chrname, start, end, version)
     
     def __repr__(self):
         return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
