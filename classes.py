@@ -12,6 +12,7 @@ class GenomicRange(object):
         self.chromosome = chromosome
         self.start = start
         self.end = end
+        self._range = range(start, end+1)
 
     @staticmethod
     def from_str(gencoord_str):
@@ -32,7 +33,6 @@ class GenomicRange(object):
 
         return GenomicRange(chrname, start, end)
 
-    # TODO: Fill out function to return index of a given coordinate
     def get_index(self, coordinate):
         """ Returns an index of a given coordinate within GenomicRange. For 
         example, an index of the first coordinate is 0.
@@ -47,6 +47,9 @@ class GenomicRange(object):
 
         return coordinate - self.start
 
+    def __getitem__(self, index):
+        return self._range[index]
+
     def __eq__(self, compare):
         if isinstance(compare, GenomicRange):
             if self.chromosome != compare.chromosome:
@@ -60,6 +63,9 @@ class GenomicRange(object):
 
         return False
 
+    def __iter__(self):
+        return self._range.__iter__()
+
     def __repr__(self):
         return '{name}(chromosome={chromosome}, start={start}, end={end})'\
             .format(
@@ -67,38 +73,52 @@ class GenomicRange(object):
                 start=self.start, end=self.end
             )
 
-class PairedGenomicRanges(object):
-    def __init__(self, query, match, description=''):
-        self.query = query
-        self.match = match
-        self.description = description
+class PairedGenomicRanges(Mapping):
+    def __init__(self, keys, ranges):
+        self._keys = tuple(keys)
+        self._ranges = tuple(ranges)
+        self._pair = dict(zip(keys, ranges))
+
+    @property
+    def keys(self):
+        return self._keys
+
+    @property
+    def ranges(self):
+        return self._ranges
+
+    @staticmethod
+    def from_dict(pairedRangeDict):
+        keys = pairedRangeDict.keys()
+        ranges = pairedRangeDict.values()
+        
+        return PairedGenomicRanges(keys, ranges)
+
+    def __len__(self):
+        return len(self._pair)
+
+    def __iter__(self):
+        for item in self._pair.items():
+            yield item
+
+    def __getitem__(self, key):
+        return self._pair[key]
 
     def __eq__(self, compare):
         if isinstance(compare, PairedGenomicRanges):
-            if self.query != compare.query:
+            if self.keys != compare.keys:
                 return False
-            elif self.match != compare.match:
+            if self.ranges != compare.ranges:
+                return False
+            if self._pair != compare._pair:
                 return False
             # If compare object passed all comparisons, return True
             return True
 
         return False
 
-
     def __repr__(self):
-        if self.description:
-            return '{name}: {desc} (query={query}, match={match})'\
-                .format(
-                    name=type(self).__name__, 
-                    query=self.query, match=self.match, desc=self.description
-                )
-
-        else:
-            return '{name}(query={query}, match={match})'\
-                .format(
-                    name=type(self).__name__, 
-                    query=self.query, match=self.match
-                )
+        return self._pair.__repr__()
 
 class Database(Mapping):
     """ This class inherits Mapping class. __iter__, __getitem__ and __len__ 
