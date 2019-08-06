@@ -21,7 +21,7 @@ class GenomicRange(object):
 		Return
 		------
 		GenomicRange object
-        """
+		"""
 		chrname = gencoord_str.split(':')[0]
 		start = int(gencoord_str.split(':')[1].split('..')[0])
 		end = int(gencoord_str.split(':')[1].split('..')[1])
@@ -96,26 +96,29 @@ class Database(Mapping):
         100 in column "A", please specify **kwargs as "A=gte100". 
         Please see below for details.
         If nothing passed to **kwargs, return input dataframe.
+
         Paramters
         ---------
-            df: DataFrame (pandas)
-                input dataframe
-            **kwargs:
-                key is for column, value is for filtering values (items)
-                You can use indicators below for filtering way.
-                "gt" for ">"
-                "gte" for ">="
-                "lt" for "<"
-                "lte" for "<="
-                "ne" for "!="
-                "c/" for "contains"
-                "" for "=="
-                If you pass tuple to value, this function search and filter 
-                items recursively.
+		sort_by: str
+			column name which in output dataframe is sorted by values in.
+		ascending: bool (default: True)
+		**kwargs:
+			key is for column, value is for filtering values (items)
+			You can use indicators below for filtering way.
+			"gt" for ">"
+			"gte" for ">="
+			"lt" for "<"
+			"lte" for "<="
+			"ne" for "!="
+			"c/" for "contains"
+			"" for "=="
+			If you pass tuple to value, this function search and filter 
+			items recursively.
+
         Dependencies
         ------------
-            pandas
-            re
+		pandas
+		re
         '''
         res_df = self.df
         def f(res_df, k, v):

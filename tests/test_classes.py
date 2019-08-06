@@ -106,8 +106,8 @@ class TestConvertCoordinates:
 			)
 
 		# Another way to input query coordinates: specify each property
-		assert self.cc.get_dmel_coordinates(5, 6, query_chr='2L', 
-											query_start=1, query_end=10) == \
+		assert self.cc.get_dmel_coordinates(
+			5, 6, query_chr='2L', query_start=1, query_end=10) == \
 			PairedGenomicRanges(
 				GenomicRange(chromosome='2L', start=1, end=10),
 				GenomicRange(chromosome='2L', start=11, end=20)
