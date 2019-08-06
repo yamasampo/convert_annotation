@@ -13,6 +13,13 @@ class TestGenomicRange:
 	def teardown(self):
 		pass
 
+	def test_eq(self):
+		assert self.gencood == GenomicRange('2L', 1, 10)
+		assert self.gencood != ('2L', 1, 10)
+		assert self.gencood != GenomicRange('3L', 1, 10)
+		assert self.gencood != GenomicRange('2L', 2, 10)
+		assert self.gencood != GenomicRange('2L', 1, 20)
+
 	def test_chromosome(self):
 		assert self.gencood.chromosome == '2L'
 
@@ -36,6 +43,21 @@ class TestPairedGenomicRanges:
 	def teardown(self):
 		pass
 	
+	def test_eq(self):
+		assert self.paired_gencoord == PairedGenomicRanges(
+			GenomicRange('2L', 1, 10),
+			GenomicRange('2L', 11, 20)
+		)
+		assert self.paired_gencoord != (('2L', 1, 10), ('2L', 11, 20))
+		assert self.paired_gencoord != PairedGenomicRanges(
+			GenomicRange('3L', 1, 10),
+			GenomicRange('2L', 11, 20)
+		)
+		assert self.paired_gencoord != PairedGenomicRanges(
+			GenomicRange('2L', 1, 10),
+			GenomicRange('2L', 101, 110)
+		)
+
 	def test_query(self):
 		assert self.paired_gencoord.query.chromosome == '2L'
 		assert self.paired_gencoord.query.start == 1

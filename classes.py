@@ -28,6 +28,19 @@ class GenomicRange(object):
 
 		return GenomicRange(chrname, start, end)
 
+	def __eq__(self, compare):
+		if isinstance(compare, GenomicRange):
+			if self.chromosome != compare.chromosome:
+				return False
+			elif self.start != compare.start:
+				return False
+			elif self.end != compare.end:
+				return False
+			# If compare object passed all comparisons, return True
+			return True
+
+		return False
+
 	def __repr__(self):
 		return '{name}(chromosome={chromosome}, start={start}, end={end})'\
 			.format(
@@ -40,6 +53,18 @@ class PairedGenomicRanges(object):
 		self.query = query
 		self.match = match
 		self.description = description
+
+	def __eq__(self, compare):
+		if isinstance(compare, PairedGenomicRanges):
+			if self.query != compare.query:
+				return False
+			elif self.match != compare.match:
+				return False
+			# If compare object passed all comparisons, return True
+			return True
+
+		return False
+
 
 	def __repr__(self):
 		if self.description:
