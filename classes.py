@@ -82,11 +82,11 @@ class PairedGenomicRanges(object):
 				)
 
 class Database(Mapping):
-    """ This class inherits Mapping class. __iter__, __getitem__ and __len__ 
-    functions are overwritten. This is a base class of SFS class. """
-    def __init__(self, df, description=''):
-        self.df = df
-        self.description = description
+	""" This class inherits Mapping class. __iter__, __getitem__ and __len__ 
+	functions are overwritten. This is a base class of SFS class. """
+	def __init__(self, df, description=''):
+		self.df = df
+		self.description = description
 
 	@property
 	def columns(self):
@@ -96,17 +96,17 @@ class Database(Mapping):
 	def shape(self):
 		return self.df.shape
         
-    def filter(self, sort_by='', ascending=True, **kwargs):
-        '''
-        Search rows which have specifies items from a given dataframe.
-        Please pass key words for searching to **kwargs.
-        For example, if you want to get items that is greater than equal (>=)
-        100 in column "A", please specify **kwargs as "A=gte100". 
-        Please see below for details.
-        If nothing passed to **kwargs, return input dataframe.
+	def filter(self, sort_by='', ascending=True, **kwargs):
+		'''
+		Search rows which have specifies items from a given dataframe.
+		Please pass key words for searching to **kwargs.
+		For example, if you want to get items that is greater than equal (>=)
+		100 in column "A", please specify **kwargs as "A=gte100". 
+		Please see below for details.
+		If nothing passed to **kwargs, return input dataframe.
 
-        Paramters
-        ---------
+		Paramters
+		---------
 		sort_by: str
 			column name which in output dataframe is sorted by values in.
 		ascending: bool (default: True)
@@ -123,86 +123,86 @@ class Database(Mapping):
 			If you pass tuple to value, this function search and filter 
 			items recursively.
 
-        Dependencies
-        ------------
+		Dependencies
+		------------
 		pandas
 		re
-        '''
-        res_df = self.df
-        def f(res_df, k, v):
-            if isinstance(v, str):
-                if v == '*':
-                    pass
-                elif re.search('^gt\d+', v):
-                    v = float(re.search('^gt(\d+\.*\d*)$', v).group(1))
-                    res_df = res_df[res_df[k] > v]
-                elif re.search('^gte\d+', v):
-                    v = float(re.search('^gte(\d+\.*\d*)$', v).group(1))
-                    res_df = res_df[res_df[k] >= v]
-                elif re.search('^lt\d+', v):
-                    v = float(re.search('^lt(\d+\.*\d*)$', v).group(1))
-                    res_df = res_df[res_df[k] < v]
-                elif re.search('^lte\d+', v):
-                    v = float(re.search('lte(\d+\.*\d*)$', v).group(1))
-                    res_df = res_df[res_df[k] <= v]
-                elif re.search('^ne\d+', v):
-                    v = float(re.search('ne(\d+\.*\d*)$', v).group(1))
-                    res_df = res_df[res_df[k] != v]
-                elif re.search('^c\/', v):
-                    v = re.search('^c\/(.+)\/$', v).group(1)
-                    res_df = res_df[res_df[k].str.contains(v)]
-                elif re.search('^nc\/', v):
-                    v = re.search('^nc\/(.+)\/$', v).group(1)
-                    res_df = res_df[~res_df[k].str.contains(v)]
-                else:
-                    res_df = res_df[res_df[k] == v]
-            elif isinstance(v, list):
-                res_df = res_df[res_df[k].isin(v)]
-            else:
-                res_df = res_df[res_df[k] == v]
+		'''
+		res_df = self.df
+		def f(res_df, k, v):
+			if isinstance(v, str):
+				if v == '*':
+					pass
+				elif re.search('^gt\d+', v):
+					v = float(re.search('^gt(\d+\.*\d*)$', v).group(1))
+					res_df = res_df[res_df[k] > v]
+				elif re.search('^gte\d+', v):
+					v = float(re.search('^gte(\d+\.*\d*)$', v).group(1))
+					res_df = res_df[res_df[k] >= v]
+				elif re.search('^lt\d+', v):
+					v = float(re.search('^lt(\d+\.*\d*)$', v).group(1))
+					res_df = res_df[res_df[k] < v]
+				elif re.search('^lte\d+', v):
+					v = float(re.search('lte(\d+\.*\d*)$', v).group(1))
+					res_df = res_df[res_df[k] <= v]
+				elif re.search('^ne\d+', v):
+					v = float(re.search('ne(\d+\.*\d*)$', v).group(1))
+					res_df = res_df[res_df[k] != v]
+				elif re.search('^c\/', v):
+					v = re.search('^c\/(.+)\/$', v).group(1)
+					res_df = res_df[res_df[k].str.contains(v)]
+				elif re.search('^nc\/', v):
+					v = re.search('^nc\/(.+)\/$', v).group(1)
+					res_df = res_df[~res_df[k].str.contains(v)]
+				else:
+					res_df = res_df[res_df[k] == v]
+			elif isinstance(v, list):
+				res_df = res_df[res_df[k].isin(v)]
+			else:
+				res_df = res_df[res_df[k] == v]
 
-            return res_df
+			return res_df
 
-        for k,v in kwargs.items():
-            if isinstance(v, tuple): # "and"
-                res_df_list = []
-                for i in v:
-                    tmp_res_df = f(res_df, k, i)
-                    res_df = pd.merge(res_df, tmp_res_df, how='inner')
-            elif isinstance(v, (str, list)): # list means "or" condition
-                res_df = f(res_df, k, v)
-            elif isinstance(v, int):
-                res_df = res_df[res_df[k] == v]
-        if sort_by:
-            res_df.sort_values(by=sort_by, ascending=ascending, inplace=True)
-            
-        return res_df
-    
-    def groupby(self, **kwargs):
-        return self.df.groupby(**kwargs)
+		for k,v in kwargs.items():
+			if isinstance(v, tuple): # "and"
+				res_df_list = []
+				for i in v:
+					tmp_res_df = f(res_df, k, i)
+					res_df = pd.merge(res_df, tmp_res_df, how='inner')
+			elif isinstance(v, (str, list)): # list means "or" condition
+				res_df = f(res_df, k, v)
+			elif isinstance(v, int):
+				res_df = res_df[res_df[k] == v]
+		if sort_by:
+			res_df.sort_values(by=sort_by, ascending=ascending, inplace=True)
+			
+		return res_df
 
-    def head(self, *kwargs):
-        return self.df.head(*kwargs)
+	def groupby(self, **kwargs):
+		return self.df.groupby(**kwargs)
 
-    def tail(self, *kwargs):
-        return self.df.tail(*kwargs)
+	def head(self, *kwargs):
+		return self.df.head(*kwargs)
 
-    def __len__(self):
-        return len(self.df.index)
-    
-    def __iter__(self):
-        return self.df.iterrows()
-    
-    def __getitem__(self, key):
-        if key == '*':
-            return self.df
-        else:
-            return self.df.loc[key, :]
-    
-    def __repr__(self):
-        return '<{name}: {desc} ({size} records)>'.format(
-            name=type(self).__name__, desc=self.description, size=self.__len__()
-        )
+	def tail(self, *kwargs):
+		return self.df.tail(*kwargs)
+
+	def __len__(self):
+		return len(self.df.index)
+
+	def __iter__(self):
+		return self.df.iterrows()
+
+	def __getitem__(self, key):
+		if key == '*':
+			return self.df
+		else:
+			return self.df.loc[key, :]
+
+	def __repr__(self):
+		return '<{name}: {desc} ({size} records)>'.format(
+			name=type(self).__name__, desc=self.description, size=self.__len__()
+		)
 
 class ConvertCoordinates(Database):
 	def __init__(self, df, version1, version2, description=''):
@@ -237,7 +237,7 @@ class ConvertCoordinates(Database):
 		assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
 				x[v2_end] - x[v2_start], axis=1).all()
 
-	def get_rows(version, chromosome, start, end, sort_by='', ascending=True):
+	def get_rows(self, version, chromosome, start, end, sort_by='', ascending=True):
 		""" Returns a subset of DataFrame where a segment include input range 
 		completely. Currently this function does not take care of partial matches.
 		"""
