@@ -3,6 +3,59 @@ import pandas as pd
 from collections import namedtuple
 from collections.abc import Mapping
 
+class GenomicRange(object):
+	def __init__(self, chromosome, start, end):
+		self.chromosome = chromosome
+		self.start = start
+		self.end = end
+
+	@staticmethod
+	def from_str(gencoord_str):
+		""" Returns GenomicRange object for input string.
+		Parameter   
+		---------
+		gencoord_str: str
+			gencoord_str has to be in the format of 
+			"{chr}:{start}..{start}:{version}"
+		
+		Return
+		------
+		GenomicRange object
+        """
+		chrname = gencoord_str.split(':')[0]
+		start = int(gencoord_str.split(':')[1].split('..')[0])
+		end = int(gencoord_str.split(':')[1].split('..')[1])
+
+		return GenomicRange(chrname, start, end)
+
+	def __repr__(self):
+		return '{name}(chromosome={chromosome}, start={start}, end={end})'\
+			.format(
+				name=type(self).__name__, chromosome=self.chromosome, 
+				start=self.start, end=self.end
+			)
+
+class PairedGenomicRanges(object):
+	def __init__(self, query, match, description=''):
+		self.query = query
+		self.match = match
+		self.description = description
+
+	def __repr__(self):
+		if self.description:
+			return '{name}: {desc} (query={query}, match={match})'\
+				.format(
+					name=type(self).__name__, 
+					query=self.query, match=self.match, desc=self.description
+				)
+
+		else:
+			return '{name}(query={query}, match={match})'\
+				.format(
+					name=type(self).__name__, 
+					query=self.query, match=self.match
+				)
+
 class Database(Mapping):
     """ This class inherits Mapping class. __iter__, __getitem__ and __len__ 
     functions are overwritten. This is a base class of SFS class. """
@@ -114,14 +167,6 @@ class Database(Mapping):
         return '<{name}: {desc} ({size} records)>'.format(
             name=type(self).__name__, desc=self.description, size=self.__len__()
         )
-    
-GenomicCoordinate = namedtuple(
-    'GenomicCoordinate', ['chromosome', 'start', 'end', 'version']
-)
-
-PairedGenomicCoord = namedtuple(
-    'PairedGenomicCoord', ['query', 'reference']
-)
 
 class ConvertCoordinates(Database):
 	def __init__(self, df, version1, version2, description=''):
@@ -156,12 +201,19 @@ class ConvertCoordinates(Database):
 		assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
 				x[v2_end] - x[v2_start], axis=1).all()
     
-	def get_dmel_coordinates(self, query):
+	def get_dmel_coordinates(self, query_version, ref_version, query=None,
+							 query_chr='', query_start=None, query_end=None):
 		# Parse input query
 		if isinstance(query, str):
-			query_coord = self.query_parser(query, query_version)
-		elif isinstance(query, GenomicCoordinate):
+			query_coord = GenomicRange.from_str(query)
+		elif isinstance(query, GenomicRange):
 			query_coord = query
+		elif query_chr and query_start and query_end:
+			query_coord = GenomicRange(
+				query_chr, query_start, query_end, query_version)
+		else:
+			raise Exception('Please input query or query_chr, query_start and'\
+				' query_end.')
 		
 		# Find query coordinate in DataFrame
 		filt_kw = {
@@ -169,44 +221,45 @@ class ConvertCoordinates(Database):
 			f'v{query_version}_start': f'lte{query_coord.start}',
 			f'v{query_version}_end': f'gte{query_coord.end}',
 		}
-		conv_dicts = self.filter(**filt_kw).T.to_dict()
+		conv_table = self.filter(**filt_kw)
 		
 		# If query is not found, return -9
-		if len(conv_dicts) == 0:
-			return PairedGenomicCoord(
+		if len(conv_table) == 0:
+			return PairedGenomicRanges(
 				query_coord, 
-				[GenomicCoordinate('', -9, -9, -9)]
+				GenomicRange(-9, -9, -9)
 			)
-		
-		# Collect results
-		results = []
-		
-		for i, conv_dict in conv_dicts.items():
-			# Get position of the query coordinates
-			# Assumes continuous coordinates in both versions
-			ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
-			ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
+		# If query range is found in the multiple rows, return -8
+		elif len(conv_table) > 1:
+			return PairedGenomicRanges(
+				query_coord, 
+				GenomicRange(-8, -8, -8)
+			)
 
-			# Refer to the other version
-			ref_range = range(conv_dict[f'v{ref_version}_start'], 
-								conv_dict[f'v{ref_version}_end']+1)
-			try:
-				s2 = ref_range[ix1]
-			except IndexError:
-				raise Exception('IndexError found: {} '\
-					'while length is {}'.format(ix1, len(ref_range)))
-			try:
-				e2 = ref_range[ix2]
-			except IndexError:
-				raise Exception('IndexError found: {} '\
-					'while length is {}'.format(ix2, len(ref_range)))
+		conv_dict = conv_table.iloc[0].to_dict()
+		# Get position of the query coordinates
+		# Assumes continuous coordinates in both versions
+		ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
+		ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
 
-			result_coord = GenomicCoordinate(
-				conv_dict[f'v{ref_version}_chr'], s2, e2, ref_version)
+		# Refer to the other version
+		ref_range = range(conv_dict[f'v{ref_version}_start'], 
+						  conv_dict[f'v{ref_version}_end']+1)
+		try:
+			s2 = ref_range[ix1]
+		except IndexError:
+			raise Exception('IndexError found: {} '\
+				'while length is {}'.format(ix1, len(ref_range)))
+		try:
+			e2 = ref_range[ix2]
+		except IndexError:
+			raise Exception('IndexError found: {} '\
+				'while length is {}'.format(ix2, len(ref_range)))
+
+		result_coord = GenomicRange(
+			conv_dict[f'v{ref_version}_chr'], s2, e2)
 			
-			results.append(result_coord)
-			
-		return PairedGenomicCoord(query_coord, results)
+		return PairedGenomicRanges(query_coord, result_coord)
 
 	def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
 		query_coords = [self.query_parser(q, query_version) for q in querys]
@@ -218,26 +271,6 @@ class ConvertCoordinates(Database):
 			result_pairs.append(result)
 		
 		return result_pairs
-	
-	@staticmethod
-	def gencoord_parser(gencoord_str):
-		""" Returns GenomicCoordinate object for input string.
-		Parameter
-		---------
-		gencoord_str: str
-			gencoord_str has to be in the format of 
-			"{chr}:{start}..{start}:{version}"
-		
-		Return
-		------
-		GenomicCoordinate object
-        """
-		chrname = gencoord_str.split(':')[0]
-		start = int(gencoord_str.split(':')[1].split('..')[0])
-		end = int(gencoord_str.split(':')[1].split('..')[1])
-		version = int(gencoord_str.split(':')[2])
-		
-		return GenomicCoordinate(chrname, start, end, version)
 		
 	def __repr__(self):
 		return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(

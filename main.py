@@ -11,7 +11,7 @@ def main(map_csv_path, query_version, ref_version,
     paired_gen_coord_list = cc.recursively_get_dmel_coordinates(
         query_version, ref_version, querys)
 
-    out_df = formatter.concat_list_of_PairedGenomicCoord_to_DataFrame(
+    out_df = formatter.concat_list_of_PairedGenomicRanges_to_DataFrame(
         paired_gen_coord_list)
 
     out_df.to_csv(out_csv_path)

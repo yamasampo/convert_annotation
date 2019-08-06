@@ -1,6 +1,6 @@
 import pandas as pd
 
-def from_GenomicCoord_list_to_DataFrame(gen_coord_list):
+def from_GenomicRange_list_to_DataFrame(gen_coord_list):
     chr_list = []
     start_list = []
     end_list = []
@@ -21,8 +21,8 @@ def from_GenomicCoord_list_to_DataFrame(gen_coord_list):
         }
     )
 
-def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
-    matched_df = from_GenomicCoord_list_to_DataFrame(
+def from_PairedGenomicRanges_to_DataFrame(paired_gen_coord):
+    matched_df = from_GenomicRange_list_to_DataFrame(
         paired_gen_coord.reference)
     
     matched_df.rename(
@@ -70,11 +70,11 @@ def from_PairedGenomicCoord_to_DataFrame(paired_gen_coord):
 
     return matched_df.loc[:, columns_order]
 
-def concat_list_of_PairedGenomicCoord_to_DataFrame(paired_gen_coord_list):
+def concat_list_of_PairedGenomicRanges_to_DataFrame(paired_gen_coord_list):
     concat_list = []
 
     for i, paired_gen_coord in enumerate(paired_gen_coord_list):
-        tmp_df = from_PairedGenomicCoord_to_DataFrame(paired_gen_coord)
+        tmp_df = from_PairedGenomicRanges_to_DataFrame(paired_gen_coord)
         tmp_df['pair_id'] = i+1
 
         concat_list.append(tmp_df)
