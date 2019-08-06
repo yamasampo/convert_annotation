@@ -128,6 +128,14 @@ class TestConvertCoordinates:
     def teardown(self):
         pass
 
+    def test_to_PairedGenomicRanges(self):
+        assert self.cc.to_PairedGenomicRanges(self.cc.df.iloc[0], 5, 6) == \
+            PairedGenomicRanges(
+                ['v5', 'v6'], 
+                [GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)],
+                is_inversion=False
+            )
+
     # def test_get_dmel_coordinates(self):
     #     # Test 5 to 6 conversion
     #     assert self.cc.get_dmel_coordinates(5, 6, '2L:1..10') == \

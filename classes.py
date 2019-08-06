@@ -119,7 +119,9 @@ class PairedGenomicRanges(Mapping):
         return False
 
     def __repr__(self):
-        return self._pair.__repr__()
+        return '{pair}; is_inversion={is_inversion}'.format(
+            pair=self._pair.__repr__(), is_inversion=self.is_inversion
+        )
 
 class Database(Mapping):
     """ This class inherits Mapping class. __iter__, __getitem__ and __len__ 
@@ -292,6 +294,30 @@ class ConvertCoordinates(Database):
     # a given segment
     def get_position_in_segment():
         pass
+
+    @staticmethod
+    def to_PairedGenomicRanges(row, version1, version2):
+        keys = [f'v{version1}', f'v{version2}']
+        ranges = [
+            GenomicRange(
+                row[f'v{version1}_chr'], 
+                row[f'v{version1}_start'],
+                row[f'v{version1}_end']
+            ),
+            GenomicRange(
+                row[f'v{version2}_chr'], 
+                row[f'v{version2}_start'],
+                row[f'v{version2}_end']
+            )
+        ]
+        is_inversion = True if row['strand'] == '-' else False
+
+        return PairedGenomicRanges(keys, ranges, is_inversion)
+
+    def to_list_of_PairedGenomicRanges(self):
+        return self.df.apply(lambda x: 
+            self.to_PairedGenomicRanges(x, self.version1, self.version2), 
+            axis=1).tolist()
 
     def get_dmel_coordinates(self, query_version, ref_version, query=None,
                                 query_chr='', query_start=None, query_end=None):
