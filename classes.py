@@ -124,103 +124,103 @@ PairedGenomicCoord = namedtuple(
 )
 
 class ConvertCoordinates(Database):
-    def __init__(self, df, version1, version2, description=''):
-        super().__init__(df, description) # use __init__() of parent class
-        self.version1, self.version2 = version1, version2
+	def __init__(self, df, version1, version2, description=''):
+		super().__init__(df, description) # use __init__() of parent class
+		self.version1, self.version2 = version1, version2
 
-        # Check if all columns are contined in DataFrame
-        self.check_columns()
-        self.check_same_len()
-        
-    def check_columns(self):
-        assert f'v{self.version1}_chr' in self.df.columns, \
-            f'Column not found: "v{self.version1}_chr" was expected.'
-        assert f'v{self.version1}_start' in self.df.columns, \
-            f'Column not found: "v{self.version1}_start" was expected.'
-        assert f'v{self.version1}_end' in self.df.columns, \
-            f'Column not found: "v{self.version1}_end" was expected.'
-        
-        assert f'v{self.version2}_chr' in self.df.columns, \
-            f'Column not found: "v{self.version2}_chr" was expected.'
-        assert f'v{self.version2}_start' in self.df.columns, \
-            f'Column not found: "v{self.version2}_start" was expected.'
-        assert f'v{self.version2}_end' in self.df.columns, \
-            f'Column not found: "v{self.version2}_end" was expected.'
+		# Check if all columns are contined in DataFrame
+		self.check_columns()
+		self.check_same_len()
 
-    def check_same_len(self):
-        v1_start = f'v{self.version1}_start'
-        v1_end = f'v{self.version1}_end'
-        v2_start = f'v{self.version2}_start'
-        v2_end = f'v{self.version2}_end'
+	def check_columns(self):
+		assert f'v{self.version1}_chr' in self.df.columns, \
+			f'Column not found: "v{self.version1}_chr" was expected.'
+		assert f'v{self.version1}_start' in self.df.columns, \
+			f'Column not found: "v{self.version1}_start" was expected.'
+		assert f'v{self.version1}_end' in self.df.columns, \
+			f'Column not found: "v{self.version1}_end" was expected.'
 
-        assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
-             x[v2_end] - x[v2_start], axis=1).all()
+		assert f'v{self.version2}_chr' in self.df.columns, \
+			f'Column not found: "v{self.version2}_chr" was expected.'
+		assert f'v{self.version2}_start' in self.df.columns, \
+			f'Column not found: "v{self.version2}_start" was expected.'
+		assert f'v{self.version2}_end' in self.df.columns, \
+			f'Column not found: "v{self.version2}_end" was expected.'
+
+	def check_same_len(self):
+		v1_start = f'v{self.version1}_start'
+		v1_end = f'v{self.version1}_end'
+		v2_start = f'v{self.version2}_start'
+		v2_end = f'v{self.version2}_end'
+
+		assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
+				x[v2_end] - x[v2_start], axis=1).all()
     
-    def get_dmel_coordinates(self, query):
-        # Parse input query
-        if isinstance(query, str):
-            query_coord = self.query_parser(query, query_version)
-        elif isinstance(query, GenomicCoordinate):
-            query_coord = query
-        
-        # Find query coordinate in DataFrame
-        filt_kw = {
-            f'v{query_version}_chr': query_coord.chromosome,
-            f'v{query_version}_start': f'lte{query_coord.start}',
-            f'v{query_version}_end': f'gte{query_coord.end}',
-        }
-        conv_dicts = self.filter(**filt_kw).T.to_dict()
-        
-        # If query is not found, return -9
-        if len(conv_dicts) == 0:
-            return PairedGenomicCoord(
-                query_coord, 
-                [GenomicCoordinate('', -9, -9, -9)]
-            )
-        
-        # Collect results
-        results = []
-        
-        for i, conv_dict in conv_dicts.items():
-            # Get position of the query coordinates
-            # Assumes continuous coordinates in both versions
-            ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
-            ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
+	def get_dmel_coordinates(self, query):
+		# Parse input query
+		if isinstance(query, str):
+			query_coord = self.query_parser(query, query_version)
+		elif isinstance(query, GenomicCoordinate):
+			query_coord = query
+		
+		# Find query coordinate in DataFrame
+		filt_kw = {
+			f'v{query_version}_chr': query_coord.chromosome,
+			f'v{query_version}_start': f'lte{query_coord.start}',
+			f'v{query_version}_end': f'gte{query_coord.end}',
+		}
+		conv_dicts = self.filter(**filt_kw).T.to_dict()
+		
+		# If query is not found, return -9
+		if len(conv_dicts) == 0:
+			return PairedGenomicCoord(
+				query_coord, 
+				[GenomicCoordinate('', -9, -9, -9)]
+			)
+		
+		# Collect results
+		results = []
+		
+		for i, conv_dict in conv_dicts.items():
+			# Get position of the query coordinates
+			# Assumes continuous coordinates in both versions
+			ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
+			ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
 
-            # Refer to the other version
-            ref_range = range(conv_dict[f'v{ref_version}_start'], 
-                              conv_dict[f'v{ref_version}_end']+1)
-            try:
-                s2 = ref_range[ix1]
-            except IndexError:
-                raise Exception('IndexError found: {} '\
-                    'while length is {}'.format(ix1, len(ref_range)))
-            try:
-                e2 = ref_range[ix2]
-            except IndexError:
-                raise Exception('IndexError found: {} '\
-                    'while length is {}'.format(ix2, len(ref_range)))
+			# Refer to the other version
+			ref_range = range(conv_dict[f'v{ref_version}_start'], 
+								conv_dict[f'v{ref_version}_end']+1)
+			try:
+				s2 = ref_range[ix1]
+			except IndexError:
+				raise Exception('IndexError found: {} '\
+					'while length is {}'.format(ix1, len(ref_range)))
+			try:
+				e2 = ref_range[ix2]
+			except IndexError:
+				raise Exception('IndexError found: {} '\
+					'while length is {}'.format(ix2, len(ref_range)))
 
-            result_coord = GenomicCoordinate(
-                conv_dict[f'v{ref_version}_chr'], s2, e2, ref_version)
-            
-            results.append(result_coord)
-            
-        return PairedGenomicCoord(query_coord, results)
+			result_coord = GenomicCoordinate(
+				conv_dict[f'v{ref_version}_chr'], s2, e2, ref_version)
+			
+			results.append(result_coord)
+			
+		return PairedGenomicCoord(query_coord, results)
 
-    def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
-        query_coords = [self.query_parser(q, query_version) for q in querys]
-        result_pairs = []
+	def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
+		query_coords = [self.query_parser(q, query_version) for q in querys]
+		result_pairs = []
 
-        for query_coord in query_coords:
-            result = self.get_dmel_coordinates(
-                query_version, ref_version, query_coord)
-            result_pairs.append(result)
-
-        return result_pairs
-
-    @staticmethod
-    def gencoord_parser(gencoord_str):
+		for query_coord in query_coords:
+			result = self.get_dmel_coordinates(
+				query_version, ref_version, query_coord)
+			result_pairs.append(result)
+		
+		return result_pairs
+	
+	@staticmethod
+	def gencoord_parser(gencoord_str):
 		""" Returns GenomicCoordinate object for input string.
 		Parameter
 		---------
@@ -238,10 +238,10 @@ class ConvertCoordinates(Database):
 		version = int(gencoord_str.split(':')[2])
 		
 		return GenomicCoordinate(chrname, start, end, version)
-    
-    def __repr__(self):
-        return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
-            name=type(self).__name__, desc=self.description, 
-            v1=self.version1, v2=self.version2,
-            size=self.__len__()
-        )
+		
+	def __repr__(self):
+		return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
+			name=type(self).__name__, desc=self.description, 
+			v1=self.version1, v2=self.version2,
+			size=self.__len__()
+		)
