@@ -47,7 +47,7 @@ class TestPairedGenomicRanges:
             ranges=[
                 GenomicRange('2L', 1, 10),
                 GenomicRange('2L', 11, 20)
-            ]
+            ], is_inversion=False
         )
 
     def teardown(self):
@@ -59,7 +59,7 @@ class TestPairedGenomicRanges:
             ranges=[
                 GenomicRange('2L', 1, 10),
                 GenomicRange('2L', 11, 20)
-            ]
+            ], is_inversion=False
         )
         assert self.paired_gencoord != (('2L', 1, 10), ('2L', 11, 20))
         assert self.paired_gencoord != PairedGenomicRanges(
@@ -67,16 +67,23 @@ class TestPairedGenomicRanges:
             ranges=[
                 GenomicRange('3L', 1, 10),
                 GenomicRange('2L', 11, 20)
-            ]
-        ), 'Found {}'.format(self.paired_gencoord)
+            ], is_inversion=False
+        )
         assert self.paired_gencoord != PairedGenomicRanges(
             keys=['v6', 'v5'],
             ranges=[
                 GenomicRange('2L', 1, 10),
                 GenomicRange('2L', 11, 20)
-            ]
-        ), 'Found {}'.format(self.paired_gencoord)
-        
+            ], is_inversion=False
+        )
+        assert self.paired_gencoord != PairedGenomicRanges(
+            keys=['v6', 'v5'],
+            ranges=[
+                GenomicRange('2L', 1, 10),
+                GenomicRange('2L', 11, 20)
+            ], is_inversion=True
+        )
+
     def test_keys(self):
         assert self.paired_gencoord.keys == ('v5', 'v6')
 
@@ -84,6 +91,8 @@ class TestPairedGenomicRanges:
         assert self.paired_gencoord.ranges == (
             GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)
         )
+    def test_is_inversion(self):
+        assert self.paired_gencoord.is_inversion == False
 
 class TestConvertCoordinates:
     """ Unit tests for ConvertCoordinates. """

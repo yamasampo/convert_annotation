@@ -74,10 +74,11 @@ class GenomicRange(object):
             )
 
 class PairedGenomicRanges(Mapping):
-    def __init__(self, keys, ranges):
+    def __init__(self, keys, ranges, is_inversion):
         self._keys = tuple(keys)
         self._ranges = tuple(ranges)
         self._pair = dict(zip(keys, ranges))
+        self.is_inversion = is_inversion
 
     @property
     def keys(self):
@@ -110,7 +111,7 @@ class PairedGenomicRanges(Mapping):
                 return False
             if self.ranges != compare.ranges:
                 return False
-            if self._pair != compare._pair:
+            if self.is_inversion != compare.is_inversion:
                 return False
             # If compare object passed all comparisons, return True
             return True
