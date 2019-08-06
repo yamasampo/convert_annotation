@@ -87,6 +87,14 @@ class Database(Mapping):
     def __init__(self, df, description=''):
         self.df = df
         self.description = description
+
+	@property
+	def columns(self):
+		return self.df.columns
+
+	@property
+	def shape(self):
+		return self.df.shape
         
     def filter(self, sort_by='', ascending=True, **kwargs):
         '''
