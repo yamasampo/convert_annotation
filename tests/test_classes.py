@@ -94,6 +94,20 @@ class TestPairedGenomicRanges:
     def test_is_inversion(self):
         assert self.paired_gencoord.is_inversion == False
 
+    def test_from_dict(self):
+        d = {
+            'v5': GenomicRange('2L', 1, 10),
+            'v6': GenomicRange('2L', 11, 20)
+        }
+        assert self.paired_gencoord.from_dict(d, True) == \
+            PairedGenomicRanges(
+                keys=['v5', 'v6'],
+                ranges=[
+                    GenomicRange('2L', 1, 10),
+                    GenomicRange('2L', 11, 20)
+                ], is_inversion=True
+            )
+
 class TestConvertCoordinates:
     """ Unit tests for ConvertCoordinates. """
     def setup(self):

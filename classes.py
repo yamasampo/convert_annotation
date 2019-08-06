@@ -89,11 +89,11 @@ class PairedGenomicRanges(Mapping):
         return self._ranges
 
     @staticmethod
-    def from_dict(pairedRangeDict):
+    def from_dict(pairedRangeDict, is_inversion):
         keys = pairedRangeDict.keys()
         ranges = pairedRangeDict.values()
         
-        return PairedGenomicRanges(keys, ranges)
+        return PairedGenomicRanges(keys, ranges, is_inversion)
 
     def __len__(self):
         return len(self._pair)
