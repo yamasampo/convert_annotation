@@ -29,8 +29,9 @@ class TestGenomicRange:
     def test_end(self):
         assert self.gencood.end == 10
 
-    # def test_from_str(self):
-    # 	assert self.from_str('3R:100..200') == GenomicRange()
+    def test_from_str(self):
+    	assert self.gencood.from_str('3R:100..200') == \
+            GenomicRange('3R', 100, 200)
 
 class TestPairedGenomicRanges:
     """ Unit tests for PairedGenomicRanges. """
