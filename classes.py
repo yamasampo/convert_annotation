@@ -235,7 +235,7 @@ class ConvertCoordinates(Database):
 			query_coord = query
 		elif query_chr and query_start and query_end:
 			query_coord = GenomicRange(
-				query_chr, query_start, query_end, query_version)
+				query_chr, query_start, query_end)
 		else:
 			raise Exception('Please input query or query_chr, query_start and'\
 				' query_end.')
