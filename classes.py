@@ -28,6 +28,10 @@ class GenomicRange(object):
 
         return GenomicRange(chrname, start, end)
 
+    # TODO: Fill out function to return index of a given coordinate
+    def get_index(self, coordinate):
+        pass
+
     def __eq__(self, compare):
         if isinstance(compare, GenomicRange):
             if self.chromosome != compare.chromosome:
@@ -247,6 +251,11 @@ class ConvertCoordinates(Database):
             f'v{version}_end': f'gte{end}',
         }
         return self.filter(sort_by, ascending, **filt_kw)
+
+    # TODO: Make this function to return index? positions of a given range in 
+    # a given segment
+    def get_position_in_segment():
+        pass
 
     def get_dmel_coordinates(self, query_version, ref_version, query=None,
                                 query_chr='', query_start=None, query_end=None):
