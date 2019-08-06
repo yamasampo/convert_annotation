@@ -236,6 +236,17 @@ class ConvertCoordinates(Database):
 
 		assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
 				x[v2_end] - x[v2_start], axis=1).all()
+
+	def get_rows(version, chromosome, start, end, sort_by='', ascending=True):
+		""" Returns a subset of DataFrame where a segment include input range 
+		completely. Currently this function does not take care of partial matches.
+		"""
+		filt_kw = {
+			f'v{version}_chr': chromosome,
+			f'v{version}_start': f'lte{start}',
+			f'v{version}_end': f'gte{end}',
+		}
+		return self.filter(sort_by, ascending, **filt_kw)
     
 	def get_dmel_coordinates(self, query_version, ref_version, query=None,
 							 query_chr='', query_start=None, query_end=None):
@@ -252,12 +263,9 @@ class ConvertCoordinates(Database):
 				' query_end.')
 		
 		# Find query coordinate in DataFrame
-		filt_kw = {
-			f'v{query_version}_chr': query_coord.chromosome,
-			f'v{query_version}_start': f'lte{query_coord.start}',
-			f'v{query_version}_end': f'gte{query_coord.end}',
-		}
-		conv_table = self.filter(**filt_kw)
+		conv_table = self.get_rows(
+			query_version, query_coord.chromosome, 
+			query_coord.start, query_coord.end)
 		
 		# If query is not found, return -9
 		if len(conv_table) == 0:
