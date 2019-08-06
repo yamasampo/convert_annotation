@@ -1,6 +1,6 @@
 """ Nose tests for classes GenomicRange, PairedGenomicRanges, 
 ConvertCoordinates and their instances. """
-
+from nose.tools import assert_raises
 import pandas as pd
 from convert_annotation.classes import GenomicRange, PairedGenomicRanges, \
 	ConvertCoordinates
@@ -32,6 +32,12 @@ class TestGenomicRange:
     def test_from_str(self):
     	assert self.gencood.from_str('3R:100..200') == \
             GenomicRange('3R', 100, 200)
+
+    def test_get_index(self):
+        assert self.gencood.get_index(3) == 2
+        assert_raises(IndexError, self.gencood.get_index, -2)
+        assert_raises(IndexError, self.gencood.get_index, 11)
+        assert_raises(IndexError, self.gencood.get_index, 0)
 
 class TestPairedGenomicRanges:
     """ Unit tests for PairedGenomicRanges. """

@@ -4,6 +4,10 @@ from collections import namedtuple
 from collections.abc import Mapping
 
 class GenomicRange(object):
+    """ Construct GenomicRange object. This GenomicRange is for chromosomal 
+    position data. Coordinates are counted from 1 (e.g. the first nucleotide 
+    at a given chromosome is counted as 1).
+    """
     def __init__(self, chromosome, start, end):
         self.chromosome = chromosome
         self.start = start
@@ -16,7 +20,7 @@ class GenomicRange(object):
         ---------
         gencoord_str: str
             gencoord_str has to be in the format of 
-            "{chr}:{start}..{start}:{version}"
+            "{chr}:{start}..{end}:{version}"
         
         Return
         ------
@@ -30,7 +34,18 @@ class GenomicRange(object):
 
     # TODO: Fill out function to return index of a given coordinate
     def get_index(self, coordinate):
-        pass
+        """ Returns an index of a given coordinate within GenomicRange. For 
+        example, an index of the first coordinate is 0.
+        """
+        if coordinate < 0:
+            raise IndexError('Invalid coordinate. Negative value is not '\
+                'available in GenomicRange.')
+        elif coordinate > self.end:
+            raise IndexError(f'list index out of range: {coordinate} > {self.end}.')
+        elif coordinate < self.start:
+            raise IndexError(f'list index out of range: {coordinate} < {self.start}.')
+
+        return coordinate - self.start
 
     def __eq__(self, compare):
         if isinstance(compare, GenomicRange):
