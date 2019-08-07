@@ -1,122 +1,184 @@
 """ Nose tests for classes GenomicRange, PairedGenomicRanges, 
 ConvertCoordinates and their instances. """
-
+from nose.tools import assert_raises
 import pandas as pd
 from convert_annotation.classes import GenomicRange, PairedGenomicRanges, \
 	ConvertCoordinates
 
 class TestGenomicRange:
-	""" Unit tests for GenomicRange. """
-	def setup(self):
-		self.gencood = GenomicRange('2L', 1, 10)
+    """ Unit tests for GenomicRange. """
+    def setup(self):
+        self.gencood = GenomicRange('2L', 1, 10)
 
-	def teardown(self):
-		pass
+    def teardown(self):
+        pass
 
-	def test_chromosome(self):
-		assert self.gencood.chromosome == '2L'
+    def test_eq(self):
+        assert self.gencood == GenomicRange('2L', 1, 10)
+        assert self.gencood != ('2L', 1, 10)
+        assert self.gencood != GenomicRange('3L', 1, 10)
+        assert self.gencood != GenomicRange('2L', 2, 10)
+        assert self.gencood != GenomicRange('2L', 1, 20)
 
-	def test_start(self):
-		assert self.gencood.start == 1
+    def test_chromosome(self):
+        assert self.gencood.chromosome == '2L'
 
-	def test_end(self):
-		assert self.gencood.end == 10
+    def test_start(self):
+        assert self.gencood.start == 1
 
-	# def test_from_str(self):
-	# 	assert self.from_str('3R:100..200') == GenomicRange()
+    def test_end(self):
+        assert self.gencood.end == 10
+
+    def test_from_str(self):
+    	assert self.gencood.from_str('3R:100..200') == \
+            GenomicRange('3R', 100, 200)
+
+    def test_get_index(self):
+        assert self.gencood.get_index(3) == 2
+        assert_raises(IndexError, self.gencood.get_index, -2)
+        assert_raises(IndexError, self.gencood.get_index, 11)
+        assert_raises(IndexError, self.gencood.get_index, 0)
 
 class TestPairedGenomicRanges:
-	""" Unit tests for PairedGenomicRanges. """
-	def setup(self):
-		self.paired_gencoord = PairedGenomicRanges(
-			GenomicRange('2L', 1, 10),
-			GenomicRange('2L', 11, 20)
-		)
-	
-	def teardown(self):
-		pass
-	
-	def test_query(self):
-		assert self.paired_gencoord.query.chromosome == '2L'
-		assert self.paired_gencoord.query.start == 1
-		assert self.paired_gencoord.query.end == 10
+    """ Unit tests for PairedGenomicRanges. """
+    def setup(self):
+        self.paired_gencoord1 = PairedGenomicRanges(
+            keys=['v5', 'v6'],
+            ranges=[
+                GenomicRange('2L', 1, 10),
+                GenomicRange('2L', 11, 20)
+            ], is_inversion=False
+        )
+        self.paired_gencoord2 = PairedGenomicRanges(
+            keys=['v5', 'v6'],
+            ranges=[
+                GenomicRange('2L', 11, 100),
+                GenomicRange('2L', 61, 150)
+            ], is_inversion=True
+        )
 
-	def test_match(self):
-		assert self.paired_gencoord.match.chromosome == '2L'
-		assert self.paired_gencoord.match.start == 11
-		assert self.paired_gencoord.match.end == 20
+    def teardown(self):
+        pass
+
+    def test_eq(self):
+        assert self.paired_gencoord1 == PairedGenomicRanges(
+            keys=['v5', 'v6'],
+            ranges=[
+                GenomicRange('2L', 1, 10),
+                GenomicRange('2L', 11, 20)
+            ], is_inversion=False
+        )
+        assert self.paired_gencoord1 != (('2L', 1, 10), ('2L', 11, 20))
+        assert self.paired_gencoord1 != PairedGenomicRanges(
+            keys=['v5', 'v6'],
+            ranges=[
+                GenomicRange('3L', 1, 10),
+                GenomicRange('2L', 11, 20)
+            ], is_inversion=False
+        )
+        assert self.paired_gencoord1 != PairedGenomicRanges(
+            keys=['v6', 'v5'],
+            ranges=[
+                GenomicRange('2L', 1, 10),
+                GenomicRange('2L', 11, 20)
+            ], is_inversion=False
+        )
+        assert self.paired_gencoord1 != PairedGenomicRanges(
+            keys=['v6', 'v5'],
+            ranges=[
+                GenomicRange('2L', 1, 10),
+                GenomicRange('2L', 11, 20)
+            ], is_inversion=True
+        )
+
+    def test_keys(self):
+        assert self.paired_gencoord1.keys == ('v5', 'v6')
+
+    def test_ranges(self):
+        assert self.paired_gencoord1.ranges == (
+            GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)
+        )
+    def test_is_inversion(self):
+        assert self.paired_gencoord1.is_inversion == False
+
+    def test_from_dict(self):
+        d = {
+            'v5': GenomicRange('2L', 1, 10),
+            'v6': GenomicRange('2L', 11, 20)
+        }
+        assert self.paired_gencoord1.from_dict(d, True) == \
+            PairedGenomicRanges(
+                keys=['v5', 'v6'],
+                ranges=[
+                    GenomicRange('2L', 1, 10),
+                    GenomicRange('2L', 11, 20)
+                ], is_inversion=True
+            )
+    
+    def test_convert_range(self):
+        assert self.paired_gencoord2\
+                    .convert_range('v5', GenomicRange('2L', 20, 50)) == \
+                                  ('v6', GenomicRange('2L', 111, 141)), \
+                                      'Found {}'.format(
+                self.paired_gencoord2\
+                    .convert_range('v5', GenomicRange('2L', 20, 50)))
 
 class TestConvertCoordinates:
-	""" Unit tests for ConvertCoordinates. """
-	def setup(self):
-		df = pd.DataFrame(
-			{
-				'v5_chr': ['2L', '2L', '2L'], 
-				'v5_start': [1, 20, 35], 
-				'v5_end': [10, 30, 45], 
-				'v6_chr': ['2L', '2R', '2R'], 
-				'v6_start': [11, 21, 25], 
-				'v6_end': [20, 31, 35], 
-				'strand': ['+', '+', '+']
-			}
-		)
-		self.cc = ConvertCoordinates(
-			df, 5, 6, 'Test ConvertCoordinates object')
-		
-	def teardown(self):
-		pass
+    """ Unit tests for ConvertCoordinates. """
+    def setup(self):
+        df = pd.DataFrame(
+            {
+                'v5_chr': ['2L', '2L', '2L'], 
+                'v5_start': [1, 20, 35], 
+                'v5_end': [10, 30, 45], 
+                'v6_chr': ['2L', '2R', '2R'], 
+                'v6_start': [11, 21, 25], 
+                'v6_end': [20, 31, 35], 
+                'strand': ['+', '+', '+']
+            }
+        )
+        self.cc = ConvertCoordinates(
+            df, 5, 6, 'Test ConvertCoordinates object')
+        
+    def teardown(self):
+        pass
 
-	# def test_get_dmel_coordinates(self):
-	# 	# Test 5 to 6 conversion
-	# 	assert self.cc.get_dmel_coordinates(5, 6, '2L:1..10') == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='2L', start=1, end=10),
-	# 			GenomicRange(chromosome='2L', start=11, end=20)
-	# 		)
+    def test_to_PairedGenomicRanges(self):
+        assert self.cc.to_PairedGenomicRanges(self.cc.df.iloc[0], 5, 6) == \
+            PairedGenomicRanges(
+                [5, 6], 
+                [GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)],
+                is_inversion=False
+            )
 
-	# 	# Another way to input query coordinates: GenomicRange object
-	# 	assert self.cc.get_dmel_coordinates(
-	# 		5, 6, 
-	# 		GenomicRange(chromosome='2L', start=1, end=10)) == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='2L', start=1, end=10),
-	# 			GenomicRange(chromosome='2L', start=11, end=20)
-	# 		)
+    def test_convert_coordinate(self):
+        # Test 5 to 6 conversion
+        assert self.cc.convert_coordinate(5, '2L:1..10') == \
+            (6, GenomicRange(chromosome='2L', start=11, end=20))
 
-	# 	# Another way to input query coordinates: specify each property
-	# 	assert self.cc.get_dmel_coordinates(5, 6, quer_chr='2L', 
-	# 										query_start=1, query_end=10) == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='2L', start=1, end=10),
-	# 			GenomicRange(chromosome='2L', start=11, end=20)
-	# 		)
+        # Another way to input query coordinates: GenomicRange object
+        assert self.cc.convert_coordinate(
+            5, GenomicRange(chromosome='2L', start=1, end=10)) == \
+            (6, GenomicRange(chromosome='2L', start=11, end=20))
 
-	# 	# Test 6 to 5 conversion
-	# 	assert self.cc.get_dmel_coordinates('2L:11..15') == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='2L', start=11, end=15),
-	# 			GenomicRange(chromosome='2L', start=1, end=5)
-	# 		)
+        # Another way to input query coordinates: specify each property
+        assert self.cc.convert_coordinate(
+            5, query_chr='2L', query_start=1, query_end=10) == \
+            (6, GenomicRange(chromosome='2L', start=11, end=20))
 
-	# 	# Test chromosoem changes
-	# 	assert self.cc.get_dmel_coordinates(5, 6, '2L:23..27') == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='2L', start=23, end=27),
-	# 			GenomicRange(chromosome='2R', start=24, end=28)
-	# 		)
-		
-	# 	# Test duplication in one version
-	# 	assert self.cc.get_dmel_coordinates(6, 5, '2R:25..30') == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='2R', start=25, end=30),
-	# 			GenomicRange(chromosome=-8, start=-8, end=-8)
-	# 		)
+        # Test 6 to 5 conversion
+        assert self.cc.convert_coordinate(6, '2L:11..15') == \
+            (5, GenomicRange(chromosome='2L', start=1, end=5))
 
-	# 	# Test the case where query is not found in the list
-	# 	assert self.cc.get_dmel_coordinates(5, 6, '3L:100..200') == \
-	# 		PairedGenomicRanges(
-	# 			GenomicRange(chromosome='3L', start=100, end=200),
-	# 			GenomicRange(chromosome=-9, start=-9, end=-9)
-	# 		), \
-	# 		'Found {}'.format(self.cc.get_dmel_coordinates(5, 6, '3L:100..200'))
+        # Test chromosoem changes
+        assert self.cc.convert_coordinate(5, '2L:23..27') == \
+            (6, GenomicRange(chromosome='2R', start=24, end=28))
+        
+        # Test duplication in one version
+        assert self.cc.convert_coordinate(6, '2R:25..30') == \
+            (5, GenomicRange(chromosome=-8, start=-8, end=-8))
+
+        # Test the case where query is not found in the list
+        assert self.cc.convert_coordinate(5, '3L:100..200') == \
+            (6, GenomicRange(chromosome=-9, start=-9, end=-9))
 

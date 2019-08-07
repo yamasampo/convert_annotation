@@ -4,57 +4,159 @@ from collections import namedtuple
 from collections.abc import Mapping
 
 class GenomicRange(object):
-	def __init__(self, chromosome, start, end):
-		self.chromosome = chromosome
-		self.start = start
-		self.end = end
+    """ Construct GenomicRange object. This GenomicRange is for chromosomal 
+    position data. Coordinates are counted from 1 (e.g. the first nucleotide 
+    at a given chromosome is counted as 1).
+    """
+    def __init__(self, chromosome, start, end):
+        self.chromosome = chromosome
+        self.start = start
+        self.end = end
+        self._range = range(start, end+1)
 
-	@staticmethod
-	def from_str(gencoord_str):
-		""" Returns GenomicRange object for input string.
-		Parameter   
-		---------
-		gencoord_str: str
-			gencoord_str has to be in the format of 
-			"{chr}:{start}..{start}:{version}"
-		
-		Return
-		------
-		GenomicRange object
+    @staticmethod
+    def from_str(gencoord_str):
+        """ Returns GenomicRange object for input string.
+        Parameter   
+        ---------
+        gencoord_str: str
+            gencoord_str has to be in the format of 
+            "{chr}:{start}..{end}:{version}"
+        
+        Return
+        ------
+        GenomicRange object
         """
-		chrname = gencoord_str.split(':')[0]
-		start = int(gencoord_str.split(':')[1].split('..')[0])
-		end = int(gencoord_str.split(':')[1].split('..')[1])
+        chrname = gencoord_str.split(':')[0]
+        start = int(gencoord_str.split(':')[1].split('..')[0])
+        end = int(gencoord_str.split(':')[1].split('..')[1])
 
-		return GenomicRange(chrname, start, end)
+        return GenomicRange(chrname, start, end)
 
-	def __repr__(self):
-		return '{name}(chromosome={chromosome}, start={start}, end={end})'\
-			.format(
-				name=type(self).__name__, chromosome=self.chromosome, 
-				start=self.start, end=self.end
-			)
+    def get_index(self, coordinate):
+        """ Returns an index of a given coordinate within GenomicRange. For 
+        example, an index of the first coordinate is 0.
+        """
+        if coordinate < 0:
+            raise IndexError('Invalid coordinate. Negative value is not '\
+                'available in GenomicRange.')
+        elif coordinate > self.end:
+            raise IndexError(f'list index out of range: {coordinate} > {self.end}.')
+        elif coordinate < self.start:
+            raise IndexError(f'list index out of range: {coordinate} < {self.start}.')
 
-class PairedGenomicRanges(object):
-	def __init__(self, query, match, description=''):
-		self.query = query
-		self.match = match
-		self.description = description
+        return coordinate - self.start
 
-	def __repr__(self):
-		if self.description:
-			return '{name}: {desc} (query={query}, match={match})'\
-				.format(
-					name=type(self).__name__, 
-					query=self.query, match=self.match, desc=self.description
-				)
+    def __len__(self):
+        return len(self._range)
+    
+    def __getitem__(self, index):
+        return self._range[index]
 
-		else:
-			return '{name}(query={query}, match={match})'\
-				.format(
-					name=type(self).__name__, 
-					query=self.query, match=self.match
-				)
+    def __eq__(self, compare):
+        if isinstance(compare, GenomicRange):
+            if self.chromosome != compare.chromosome:
+                return False
+            elif self.start != compare.start:
+                return False
+            elif self.end != compare.end:
+                return False
+            # If compare object passed all comparisons, return True
+            return True
+
+        return False
+
+    def __iter__(self):
+        return self._range.__iter__()
+
+    def __repr__(self):
+        return '{name}(chromosome={chromosome}, start={start}, end={end})'\
+            .format(
+                name=type(self).__name__, chromosome=self.chromosome, 
+                start=self.start, end=self.end
+            )
+
+class PairedGenomicRanges(Mapping):
+    def __init__(self, keys, ranges, is_inversion):
+        self._keys = tuple(keys)
+        self._ranges = tuple(ranges)
+        self._pair = dict(zip(keys, ranges))
+        self.is_inversion = is_inversion
+
+    @property
+    def keys(self):
+        return self._keys
+
+    @property
+    def ranges(self):
+        return self._ranges
+
+    @staticmethod
+    def from_dict(pairedRangeDict, is_inversion):
+        keys = pairedRangeDict.keys()
+        ranges = pairedRangeDict.values()
+        
+        return PairedGenomicRanges(keys, ranges, is_inversion)
+
+    def get_another_key(self, key1):
+        """ Assumes that only two GenomicRange objects are coupled in 
+        this object. """
+        ix1 = self.keys.index(key1)
+        ix2 = 0 if ix1 == 1 else 1
+
+        return self.keys[ix2]
+
+    def convert_range(self, query_key, query_genomicRange):
+        # Get position of the query coordinates
+        # Assumes continuous coordinates in both versions
+        start_ix = self[query_key].get_index(query_genomicRange.start)
+        end_ix = self[query_key].get_index(query_genomicRange.end)
+
+        match_key = self.get_another_key(query_key)
+
+        if self.is_inversion:
+            start_ix, end_ix = -(end_ix+1), -(start_ix+1)
+
+        try:
+            s2 = self[match_key]._range[start_ix]
+        except IndexError:
+            raise Exception('IndexError found: {} '\
+                'while length is {}'.format(start_ix, len(self[match_key])))
+        try:
+            e2 = self[match_key]._range[end_ix]
+        except IndexError:
+            raise Exception('IndexError found: {} '\
+                'while length is {}'.format(end_ix, len(self[match_key])))
+        
+        return match_key, GenomicRange(self[match_key].chromosome, s2, e2)
+    
+    def __len__(self):
+        return len(self._pair)
+
+    def __iter__(self):
+        for item in self._pair.items():
+            yield item
+
+    def __getitem__(self, key):
+        return self._pair[key]
+
+    def __eq__(self, compare):
+        if isinstance(compare, PairedGenomicRanges):
+            if self.keys != compare.keys:
+                return False
+            if self.ranges != compare.ranges:
+                return False
+            if self.is_inversion != compare.is_inversion:
+                return False
+            # If compare object passed all comparisons, return True
+            return True
+
+        return False
+
+    def __repr__(self):
+        return '{pair}; is_inversion={is_inversion}'.format(
+            pair=self._pair.__repr__(), is_inversion=self.is_inversion
+        )
 
 class Database(Mapping):
     """ This class inherits Mapping class. __iter__, __getitem__ and __len__ 
@@ -62,6 +164,14 @@ class Database(Mapping):
     def __init__(self, df, description=''):
         self.df = df
         self.description = description
+
+    @property
+    def columns(self):
+        return self.df.columns
+
+    @property
+    def shape(self):
+        return self.df.shape
         
     def filter(self, sort_by='', ascending=True, **kwargs):
         '''
@@ -71,26 +181,29 @@ class Database(Mapping):
         100 in column "A", please specify **kwargs as "A=gte100". 
         Please see below for details.
         If nothing passed to **kwargs, return input dataframe.
+
         Paramters
         ---------
-            df: DataFrame (pandas)
-                input dataframe
-            **kwargs:
-                key is for column, value is for filtering values (items)
-                You can use indicators below for filtering way.
-                "gt" for ">"
-                "gte" for ">="
-                "lt" for "<"
-                "lte" for "<="
-                "ne" for "!="
-                "c/" for "contains"
-                "" for "=="
-                If you pass tuple to value, this function search and filter 
-                items recursively.
+        sort_by: str
+            column name which in output dataframe is sorted by values in.
+        ascending: bool (default: True)
+        **kwargs:
+            key is for column, value is for filtering values (items)
+            You can use indicators below for filtering way.
+            "gt" for ">"
+            "gte" for ">="
+            "lt" for "<"
+            "lte" for "<="
+            "ne" for "!="
+            "c/" for "contains"
+            "" for "=="
+            If you pass tuple to value, this function search and filter 
+            items recursively.
+
         Dependencies
         ------------
-            pandas
-            re
+        pandas
+        re
         '''
         res_df = self.df
         def f(res_df, k, v):
@@ -141,7 +254,7 @@ class Database(Mapping):
             res_df.sort_values(by=sort_by, ascending=ascending, inplace=True)
             
         return res_df
-    
+
     def groupby(self, **kwargs):
         return self.df.groupby(**kwargs)
 
@@ -153,128 +266,145 @@ class Database(Mapping):
 
     def __len__(self):
         return len(self.df.index)
-    
+
     def __iter__(self):
         return self.df.iterrows()
-    
+
     def __getitem__(self, key):
         if key == '*':
             return self.df
         else:
             return self.df.loc[key, :]
-    
+
     def __repr__(self):
         return '<{name}: {desc} ({size} records)>'.format(
             name=type(self).__name__, desc=self.description, size=self.__len__()
         )
 
 class ConvertCoordinates(Database):
-	def __init__(self, df, version1, version2, description=''):
-		super().__init__(df, description) # use __init__() of parent class
-		self.version1, self.version2 = version1, version2
+    def __init__(self, df, version1, version2, description=''):
+        super().__init__(df, description) # use __init__() of parent class
+        self.version1, self.version2 = version1, version2
 
-		# Check if all columns are contined in DataFrame
-		self.check_columns()
-		self.check_same_len()
+        # Check if all columns are contined in DataFrame
+        self.check_columns()
+        self.check_same_len()
 
-	def check_columns(self):
-		assert f'v{self.version1}_chr' in self.df.columns, \
-			f'Column not found: "v{self.version1}_chr" was expected.'
-		assert f'v{self.version1}_start' in self.df.columns, \
-			f'Column not found: "v{self.version1}_start" was expected.'
-		assert f'v{self.version1}_end' in self.df.columns, \
-			f'Column not found: "v{self.version1}_end" was expected.'
+    def check_columns(self):
+        assert f'v{self.version1}_chr' in self.df.columns, \
+            f'Column not found: "v{self.version1}_chr" was expected.'
+        assert f'v{self.version1}_start' in self.df.columns, \
+            f'Column not found: "v{self.version1}_start" was expected.'
+        assert f'v{self.version1}_end' in self.df.columns, \
+            f'Column not found: "v{self.version1}_end" was expected.'
 
-		assert f'v{self.version2}_chr' in self.df.columns, \
-			f'Column not found: "v{self.version2}_chr" was expected.'
-		assert f'v{self.version2}_start' in self.df.columns, \
-			f'Column not found: "v{self.version2}_start" was expected.'
-		assert f'v{self.version2}_end' in self.df.columns, \
-			f'Column not found: "v{self.version2}_end" was expected.'
+        assert f'v{self.version2}_chr' in self.df.columns, \
+            f'Column not found: "v{self.version2}_chr" was expected.'
+        assert f'v{self.version2}_start' in self.df.columns, \
+            f'Column not found: "v{self.version2}_start" was expected.'
+        assert f'v{self.version2}_end' in self.df.columns, \
+            f'Column not found: "v{self.version2}_end" was expected.'
 
-	def check_same_len(self):
-		v1_start = f'v{self.version1}_start'
-		v1_end = f'v{self.version1}_end'
-		v2_start = f'v{self.version2}_start'
-		v2_end = f'v{self.version2}_end'
+    def check_same_len(self):
+        v1_start = f'v{self.version1}_start'
+        v1_end = f'v{self.version1}_end'
+        v2_start = f'v{self.version2}_start'
+        v2_end = f'v{self.version2}_end'
 
-		assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
-				x[v2_end] - x[v2_start], axis=1).all()
-    
-	def get_dmel_coordinates(self, query_version, ref_version, query=None,
-							 query_chr='', query_start=None, query_end=None):
-		# Parse input query
-		if isinstance(query, str):
-			query_coord = GenomicRange.from_str(query)
-		elif isinstance(query, GenomicRange):
-			query_coord = query
-		elif query_chr and query_start and query_end:
-			query_coord = GenomicRange(
-				query_chr, query_start, query_end, query_version)
-		else:
-			raise Exception('Please input query or query_chr, query_start and'\
-				' query_end.')
-		
-		# Find query coordinate in DataFrame
-		filt_kw = {
-			f'v{query_version}_chr': query_coord.chromosome,
-			f'v{query_version}_start': f'lte{query_coord.start}',
-			f'v{query_version}_end': f'gte{query_coord.end}',
-		}
-		conv_table = self.filter(**filt_kw)
-		
-		# If query is not found, return -9
-		if len(conv_table) == 0:
-			return PairedGenomicRanges(
-				query_coord, 
-				GenomicRange(-9, -9, -9)
-			)
-		# If query range is found in the multiple rows, return -8
-		elif len(conv_table) > 1:
-			return PairedGenomicRanges(
-				query_coord, 
-				GenomicRange(-8, -8, -8)
-			)
+        assert self.df.apply(lambda x: x[v1_end] - x[v1_start] ==\
+                x[v2_end] - x[v2_start], axis=1).all()
 
-		conv_dict = conv_table.iloc[0].to_dict()
-		# Get position of the query coordinates
-		# Assumes continuous coordinates in both versions
-		ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
-		ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
+    def get_rows(self, version, chromosome, start, end, sort_by='', ascending=True):
+        """ Returns a subset of DataFrame where a segment include input range 
+        completely. Currently this function does not take care of partial matches.
+        """
+        filt_kw = {
+            f'v{version}_chr': chromosome,
+            f'v{version}_start': f'lte{start}',
+            f'v{version}_end': f'gte{end}',
+        }
+        return self.filter(sort_by, ascending, **filt_kw)
 
-		# Refer to the other version
-		ref_range = range(conv_dict[f'v{ref_version}_start'], 
-						  conv_dict[f'v{ref_version}_end']+1)
-		try:
-			s2 = ref_range[ix1]
-		except IndexError:
-			raise Exception('IndexError found: {} '\
-				'while length is {}'.format(ix1, len(ref_range)))
-		try:
-			e2 = ref_range[ix2]
-		except IndexError:
-			raise Exception('IndexError found: {} '\
-				'while length is {}'.format(ix2, len(ref_range)))
+    def get_another_version(self, version):
+        if version == self.version1:
+            return self.version2
+        elif version == self.version2:
+            return self.version1
+        else:
+            raise Exception(f'Please input either of version {self.version1} '\
+                'or {self.version2}.')
 
-		result_coord = GenomicRange(
-			conv_dict[f'v{ref_version}_chr'], s2, e2)
-			
-		return PairedGenomicRanges(query_coord, result_coord)
+    @staticmethod
+    def to_PairedGenomicRanges(row, version1, version2):
+        keys = [version1, version2]
+        ranges = [
+            GenomicRange(
+                row[f'v{version1}_chr'], 
+                row[f'v{version1}_start'],
+                row[f'v{version1}_end']
+            ),
+            GenomicRange(
+                row[f'v{version2}_chr'], 
+                row[f'v{version2}_start'],
+                row[f'v{version2}_end']
+            )
+        ]
+        is_inversion = True if row['strand'] == '-' else False
 
-	def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
-		query_coords = [self.query_parser(q, query_version) for q in querys]
-		result_pairs = []
+        return PairedGenomicRanges(keys, ranges, is_inversion)
 
-		for query_coord in query_coords:
-			result = self.get_dmel_coordinates(
-				query_version, ref_version, query_coord)
-			result_pairs.append(result)
-		
-		return result_pairs
-		
-	def __repr__(self):
-		return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
-			name=type(self).__name__, desc=self.description, 
-			v1=self.version1, v2=self.version2,
-			size=self.__len__()
-		)
+    def to_list_of_PairedGenomicRanges(self):
+        return self.df.apply(lambda x: 
+            self.to_PairedGenomicRanges(x, self.version1, self.version2), 
+            axis=1).tolist()
+
+    def convert_coordinate(self, query_version, query=None,
+                           query_chr='', query_start=None, query_end=None):
+        # Parse input query
+        if isinstance(query, str):
+            query_coord = GenomicRange.from_str(query)
+        elif isinstance(query, GenomicRange):
+            query_coord = query
+        elif query_chr and query_start and query_end:
+            query_coord = GenomicRange(
+                query_chr, query_start, query_end)
+        else:
+            raise Exception('Please input query or query_chr, query_start and'\
+                ' query_end.')
+        
+        # Find query coordinate in DataFrame
+        conv_table = self.get_rows(
+            query_version, query_coord.chromosome, 
+            query_coord.start, query_coord.end)
+
+        # Get another version
+        match_version = self.get_another_version(query_version)
+        
+        # If query is not found, return -9
+        if len(conv_table) == 0:
+            return match_version, GenomicRange(-9, -9, -9)
+            
+        # If query range is found in the multiple rows, return -8
+        elif len(conv_table) > 1:
+            return match_version, GenomicRange(-8, -8, -8)
+
+        paired = self.to_PairedGenomicRanges(
+            conv_table.iloc[0], self.version1, self.version2)
+
+        # Return converted coordinates
+        return paired.convert_range(query_version, query_coord)
+
+    @staticmethod
+    def from_query_strs_to_query_coords(query_strs):
+        return [GenomicRange.from_str(query_str) for query_str in query_strs]
+        
+    def convert_coordinates(self, query_version, query_coords):
+        for query_coord in query_coords:
+            yield self.convert_coordinate(query_version, query_coord)
+                
+    def __repr__(self):
+        return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
+            name=type(self).__name__, desc=self.description, 
+            v1=self.version1, v2=self.version2,
+            size=self.__len__()
+        )
