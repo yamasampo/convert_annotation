@@ -325,6 +325,15 @@ class ConvertCoordinates(Database):
         }
         return self.filter(sort_by, ascending, **filt_kw)
 
+    def get_another_version(self, version):
+        if version == self.version1:
+            return self.version2
+        elif version == self.version2:
+            return self.version1
+        else:
+            raise Exception(f'Please input either of version {self.version1} '\
+                'or {self.version2}.')
+
     @staticmethod
     def to_PairedGenomicRanges(row, version1, version2):
         keys = [version1, version2]
@@ -367,22 +376,20 @@ class ConvertCoordinates(Database):
         conv_table = self.get_rows(
             query_version, query_coord.chromosome, 
             query_coord.start, query_coord.end)
+
+        # Get another version
+        match_version = self.get_another_version(query_version)
         
         # If query is not found, return -9
         if len(conv_table) == 0:
-            return PairedGenomicRanges(
-                query_coord, 
-                GenomicRange(-9, -9, -9)
-            )
+            return match_version, GenomicRange(-9, -9, -9)
+            
         # If query range is found in the multiple rows, return -8
         elif len(conv_table) > 1:
-            return PairedGenomicRanges(
-                query_coord, 
-                GenomicRange(-8, -8, -8)
-            )
+            return match_version, GenomicRange(-8, -8, -8)
 
         paired = self.to_PairedGenomicRanges(
-            conv_table.iloc[0], self.version1, version2)
+            conv_table.iloc[0], self.version1, self.version2)
 
         # Return converted coordinates
         return paired.convert_range(query_version, query_coord)
