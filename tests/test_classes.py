@@ -42,41 +42,48 @@ class TestGenomicRange:
 class TestPairedGenomicRanges:
     """ Unit tests for PairedGenomicRanges. """
     def setup(self):
-        self.paired_gencoord = PairedGenomicRanges(
+        self.paired_gencoord1 = PairedGenomicRanges(
             keys=['v5', 'v6'],
             ranges=[
                 GenomicRange('2L', 1, 10),
                 GenomicRange('2L', 11, 20)
             ], is_inversion=False
+        )
+        self.paired_gencoord2 = PairedGenomicRanges(
+            keys=['v5', 'v6'],
+            ranges=[
+                GenomicRange('2L', 11, 100),
+                GenomicRange('2L', 61, 150)
+            ], is_inversion=True
         )
 
     def teardown(self):
         pass
 
     def test_eq(self):
-        assert self.paired_gencoord == PairedGenomicRanges(
+        assert self.paired_gencoord1 == PairedGenomicRanges(
             keys=['v5', 'v6'],
             ranges=[
                 GenomicRange('2L', 1, 10),
                 GenomicRange('2L', 11, 20)
             ], is_inversion=False
         )
-        assert self.paired_gencoord != (('2L', 1, 10), ('2L', 11, 20))
-        assert self.paired_gencoord != PairedGenomicRanges(
+        assert self.paired_gencoord1 != (('2L', 1, 10), ('2L', 11, 20))
+        assert self.paired_gencoord1 != PairedGenomicRanges(
             keys=['v5', 'v6'],
             ranges=[
                 GenomicRange('3L', 1, 10),
                 GenomicRange('2L', 11, 20)
             ], is_inversion=False
         )
-        assert self.paired_gencoord != PairedGenomicRanges(
+        assert self.paired_gencoord1 != PairedGenomicRanges(
             keys=['v6', 'v5'],
             ranges=[
                 GenomicRange('2L', 1, 10),
                 GenomicRange('2L', 11, 20)
             ], is_inversion=False
         )
-        assert self.paired_gencoord != PairedGenomicRanges(
+        assert self.paired_gencoord1 != PairedGenomicRanges(
             keys=['v6', 'v5'],
             ranges=[
                 GenomicRange('2L', 1, 10),
@@ -85,21 +92,21 @@ class TestPairedGenomicRanges:
         )
 
     def test_keys(self):
-        assert self.paired_gencoord.keys == ('v5', 'v6')
+        assert self.paired_gencoord1.keys == ('v5', 'v6')
 
     def test_ranges(self):
-        assert self.paired_gencoord.ranges == (
+        assert self.paired_gencoord1.ranges == (
             GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)
         )
     def test_is_inversion(self):
-        assert self.paired_gencoord.is_inversion == False
+        assert self.paired_gencoord1.is_inversion == False
 
     def test_from_dict(self):
         d = {
             'v5': GenomicRange('2L', 1, 10),
             'v6': GenomicRange('2L', 11, 20)
         }
-        assert self.paired_gencoord.from_dict(d, True) == \
+        assert self.paired_gencoord1.from_dict(d, True) == \
             PairedGenomicRanges(
                 keys=['v5', 'v6'],
                 ranges=[
@@ -107,6 +114,14 @@ class TestPairedGenomicRanges:
                     GenomicRange('2L', 11, 20)
                 ], is_inversion=True
             )
+    
+    def test_convert_range(self):
+        assert self.paired_gencoord2\
+                    .convert_range('v5', GenomicRange('2L', 20, 50)) == \
+                                  ('v6', GenomicRange('2L', 111, 141)), \
+                                      'Found {}'.format(
+                self.paired_gencoord2\
+                    .convert_range('v5', GenomicRange('2L', 20, 50)))
 
 class TestConvertCoordinates:
     """ Unit tests for ConvertCoordinates. """
@@ -128,13 +143,13 @@ class TestConvertCoordinates:
     def teardown(self):
         pass
 
-    def test_to_PairedGenomicRanges(self):
-        assert self.cc.to_PairedGenomicRanges(self.cc.df.iloc[0], 5, 6) == \
-            PairedGenomicRanges(
-                ['v5', 'v6'], 
-                [GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)],
-                is_inversion=False
-            )
+    # def test_to_PairedGenomicRanges(self):
+    #     assert self.cc.to_PairedGenomicRanges(self.cc.df.iloc[0], 5, 6) == \
+    #         PairedGenomicRanges(
+    #             ['v5', 'v6'], 
+    #             [GenomicRange('2L', 1, 10), GenomicRange('2L', 11, 20)],
+    #             is_inversion=False
+    #         )
 
     # def test_get_dmel_coordinates(self):
     #     # Test 5 to 6 conversion

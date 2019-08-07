@@ -47,6 +47,9 @@ class GenomicRange(object):
 
         return coordinate - self.start
 
+    def __len__(self):
+        return len(self._range)
+    
     def __getitem__(self, index):
         return self._range[index]
 
@@ -95,6 +98,38 @@ class PairedGenomicRanges(Mapping):
         
         return PairedGenomicRanges(keys, ranges, is_inversion)
 
+    def get_another_key(self, key1):
+        """ Assumes that only two GenomicRange objects are coupled in 
+        this object. """
+        ix1 = self.keys.index(key1)
+        ix2 = 0 if ix1 == 1 else 1
+
+        return self.keys[ix2]
+
+    def convert_range(self, query_key, query_genomicRange):
+        # Get position of the query coordinates
+        # Assumes continuous coordinates in both versions
+        start_ix = self[query_key].get_index(query_genomicRange.start)
+        end_ix = self[query_key].get_index(query_genomicRange.end)
+
+        match_key = self.get_another_key(query_key)
+
+        if self.is_inversion:
+            start_ix, end_ix = -(end_ix+1), -(start_ix+1)
+
+        try:
+            s2 = self[match_key]._range[start_ix]
+        except IndexError:
+            raise Exception('IndexError found: {} '\
+                'while length is {}'.format(start_ix, len(self[match_key])))
+        try:
+            e2 = self[match_key]._range[end_ix]
+        except IndexError:
+            raise Exception('IndexError found: {} '\
+                'while length is {}'.format(end_ix, len(self[match_key])))
+        
+        return match_key, GenomicRange(self[match_key].chromosome, s2, e2)
+    
     def __len__(self):
         return len(self._pair)
 
@@ -290,14 +325,9 @@ class ConvertCoordinates(Database):
         }
         return self.filter(sort_by, ascending, **filt_kw)
 
-    # TODO: Make this function to return index? positions of a given range in 
-    # a given segment
-    def get_position_in_segment():
-        pass
-
     @staticmethod
     def to_PairedGenomicRanges(row, version1, version2):
-        keys = [f'v{version1}', f'v{version2}']
+        keys = [version1, version2]
         ranges = [
             GenomicRange(
                 row[f'v{version1}_chr'], 
@@ -319,8 +349,8 @@ class ConvertCoordinates(Database):
             self.to_PairedGenomicRanges(x, self.version1, self.version2), 
             axis=1).tolist()
 
-    def get_dmel_coordinates(self, query_version, ref_version, query=None,
-                                query_chr='', query_start=None, query_end=None):
+    def convert_coordinate(self, query_version, query=None,
+                           query_chr='', query_start=None, query_end=None):
         # Parse input query
         if isinstance(query, str):
             query_coord = GenomicRange.from_str(query)
@@ -351,42 +381,20 @@ class ConvertCoordinates(Database):
                 GenomicRange(-8, -8, -8)
             )
 
-        conv_dict = conv_table.iloc[0].to_dict()
-        # Get position of the query coordinates
-        # Assumes continuous coordinates in both versions
-        ix1 = query_coord.start - conv_dict[f'v{query_version}_start']
-        ix2 = query_coord.end - conv_dict[f'v{query_version}_start']
+        paired = self.to_PairedGenomicRanges(
+            conv_table.iloc[0], self.version1, version2)
 
-        # Refer to the other version
-        ref_range = range(conv_dict[f'v{ref_version}_start'], 
-                            conv_dict[f'v{ref_version}_end']+1)
-        try:
-            s2 = ref_range[ix1]
-        except IndexError:
-            raise Exception('IndexError found: {} '\
-                'while length is {}'.format(ix1, len(ref_range)))
-        try:
-            e2 = ref_range[ix2]
-        except IndexError:
-            raise Exception('IndexError found: {} '\
-                'while length is {}'.format(ix2, len(ref_range)))
+        # Return converted coordinates
+        return paired.convert_range(query_version, query_coord)
 
-        result_coord = GenomicRange(
-            conv_dict[f'v{ref_version}_chr'], s2, e2)
-            
-        return PairedGenomicRanges(query_coord, result_coord)
-
-    def recursively_get_dmel_coordinates(self, query_version, ref_version, querys):
-        query_coords = [self.query_parser(q, query_version) for q in querys]
-        result_pairs = []
-
+    @staticmethod
+    def from_query_strs_to_query_coords(query_strs):
+        return [GenomicRange.from_str(query_str) for query_str in query_strs]
+        
+    def convert_coordinates(self, query_version, query_coords):
         for query_coord in query_coords:
-            result = self.get_dmel_coordinates(
-                query_version, ref_version, query_coord)
-            result_pairs.append(result)
-        
-        return result_pairs
-        
+            yield self.convert_coordinate(query_version, query_coord)
+                
     def __repr__(self):
         return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
             name=type(self).__name__, desc=self.description, 
