@@ -220,3 +220,21 @@ class TestConvertCoordinates:
                 GenomicRange(chromosome=-9, start=-9, end=-9)],
                 -9
             )
+    def test_from_querys_to_DataFrame(self):
+        query_strs = [
+            '2L:1..10', '2L:23..27', '3L:100..200'
+        ]
+
+        expect_df = pd.DataFrame(
+            [['2L', 1, 10, '2L', 11, 20, False],
+             ['2L', 23, 27, '2R', 24, 28, False],
+             ['3L', 100, 200, -9, -9, -9, -9]], 
+            columns=[
+                'v5_chr', 'v5_start', 'v5_end', 
+                'v6_chr', 'v6_start', 'v6_end', 'strand'],
+            index=[0, 1, -9]
+        )
+
+        assert self.cc.from_querys_to_DataFrame(5, query_strs).all().all() == \
+            expect_df.all().all()
+

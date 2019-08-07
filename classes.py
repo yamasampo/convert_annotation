@@ -144,7 +144,7 @@ class PairedGenomicRanges(Mapping):
 
         for key, genrange in self:
             data += [genrange.chromosome, genrange.start, genrange.end]
-            indices = [f'v{key}_chromosome', f'v{key}_start', f'v{key}_end']
+            indices += [f'v{key}_chr', f'v{key}_start', f'v{key}_end']
 
         data += [self.is_inversion]
         indices += ['strand']
@@ -406,7 +406,7 @@ class ConvertCoordinates(Database):
             return PairedGenomicRanges(
                 keys=[query_version, match_version], 
                 ranges=[query_coord, GenomicRange(-9, -9, -9)], 
-                is_inversion=-9
+                is_inversion=-9, name=-9
             )
             
         # If query range is found in the multiple rows, return -8
@@ -414,11 +414,12 @@ class ConvertCoordinates(Database):
             return PairedGenomicRanges(
                 keys=[query_version, match_version], 
                 ranges=[query_coord, GenomicRange(-8, -8, -8)], 
-                is_inversion=-9
+                is_inversion=-9, name=-8
             )
 
         paired = self.to_PairedGenomicRanges(
-            conv_table.iloc[0], self.version1, self.version2, conv_table.index)
+            conv_table.iloc[0], self.version1, self.version2, 
+            conv_table.iloc[0].name)
 
         # Return converted coordinates
         return paired.convert_range(query_version, query_coord)
@@ -435,11 +436,11 @@ class ConvertCoordinates(Database):
         query_coords = self.from_query_strs_to_query_coords(query_strs)
 
         concat_list = [
-            pair.to_Series() for parir in 
-            self.convert_coordinate(query_version, query_coords)
+            pair.to_Series() for pair in 
+            self.convert_coordinates(query_version, query_coords)
         ]
 
-        return pd.concat(concat_list)
+        return pd.concat(concat_list, axis=1).T
                 
     def __repr__(self):
         return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
