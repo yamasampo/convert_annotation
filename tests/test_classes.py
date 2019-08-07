@@ -154,31 +154,65 @@ class TestConvertCoordinates:
     def test_convert_coordinate(self):
         # Test 5 to 6 conversion
         assert self.cc.convert_coordinate(5, '2L:1..10') == \
-            (6, GenomicRange(chromosome='2L', start=11, end=20))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=1, end=10),
+                GenomicRange(chromosome='2L', start=11, end=20)], 
+                False
+            )
 
         # Another way to input query coordinates: GenomicRange object
         assert self.cc.convert_coordinate(
             5, GenomicRange(chromosome='2L', start=1, end=10)) == \
-            (6, GenomicRange(chromosome='2L', start=11, end=20))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=1, end=10),
+                GenomicRange(chromosome='2L', start=11, end=20)],
+                False
+            )
 
         # Another way to input query coordinates: specify each property
         assert self.cc.convert_coordinate(
             5, query_chr='2L', query_start=1, query_end=10) == \
-            (6, GenomicRange(chromosome='2L', start=11, end=20))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=1, end=10),
+                GenomicRange(chromosome='2L', start=11, end=20)], 
+                False
+            )
 
         # Test 6 to 5 conversion
         assert self.cc.convert_coordinate(6, '2L:11..15') == \
-            (5, GenomicRange(chromosome='2L', start=1, end=5))
+            PairedGenomicRanges(
+                [6, 5], 
+                [GenomicRange(chromosome='2L', start=11, end=15),
+                GenomicRange(chromosome='2L', start=1, end=5)],
+                False
+            )
 
         # Test chromosoem changes
         assert self.cc.convert_coordinate(5, '2L:23..27') == \
-            (6, GenomicRange(chromosome='2R', start=24, end=28))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=23, end=27),
+                GenomicRange(chromosome='2R', start=24, end=28)],
+                False
+            )
         
         # Test duplication in one version
         assert self.cc.convert_coordinate(6, '2R:25..30') == \
-            (5, GenomicRange(chromosome=-8, start=-8, end=-8))
+            PairedGenomicRanges(
+                [6, 5],
+                [GenomicRange(chromosome='2R', start=25, end=30),
+                GenomicRange(chromosome=-8, start=-8, end=-8)],
+                -9
+            )
 
         # Test the case where query is not found in the list
         assert self.cc.convert_coordinate(5, '3L:100..200') == \
-            (6, GenomicRange(chromosome=-9, start=-9, end=-9))
-
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='3L', start=100, end=200),
+                GenomicRange(chromosome=-9, start=-9, end=-9)],
+                -9
+            )

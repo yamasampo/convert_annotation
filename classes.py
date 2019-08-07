@@ -382,25 +382,56 @@ class ConvertCoordinates(Database):
         
         # If query is not found, return -9
         if len(conv_table) == 0:
-            return match_version, GenomicRange(-9, -9, -9)
+            return PairedGenomicRanges(
+                keys=[query_version, match_version], 
+                ranges=[query_coord, GenomicRange(-9, -9, -9)], 
+                is_inversion=-9
+            )
             
         # If query range is found in the multiple rows, return -8
         elif len(conv_table) > 1:
-            return match_version, GenomicRange(-8, -8, -8)
+            return PairedGenomicRanges(
+                keys=[query_version, match_version], 
+                ranges=[query_coord, GenomicRange(-8, -8, -8)], 
+                is_inversion=-9
+            )
 
         paired = self.to_PairedGenomicRanges(
             conv_table.iloc[0], self.version1, self.version2)
 
         # Return converted coordinates
-        return paired.convert_range(query_version, query_coord)
+        match_version, match_coord = paired.convert_range(
+            query_version, query_coord)
+
+        return PairedGenomicRanges(
+                keys=[query_version, match_version], 
+                ranges=[query_coord, match_coord], 
+                is_inversion=paired.is_inversion
+            )
+
 
     @staticmethod
     def from_query_strs_to_query_coords(query_strs):
-        return [GenomicRange.from_str(query_str) for query_str in query_strs]
+        return list(map(GenomicRange.from_str, query_strs))
         
     def convert_coordinates(self, query_version, query_coords):
         for query_coord in query_coords:
             yield self.convert_coordinate(query_version, query_coord)
+
+    def from_querys_to_DataFrame(self, query_version, query_strs):
+        query_coords = self.from_query_strs_to_query_coords(query_strs)
+
+        concat_list = []
+
+        for i, pair in enumerate(self.convert_coordinate(
+            query_version, query_coords)):
+            
+            tmp_df = pair.to_DataFrame()
+            tmp_df['pair_id'] = i+1
+            
+            concat_list.append(tmp_df)
+
+        return pd.concat(concat_list).reset_index(drop=True)
                 
     def __repr__(self):
         return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
