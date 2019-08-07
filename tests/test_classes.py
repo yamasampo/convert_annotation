@@ -118,10 +118,14 @@ class TestPairedGenomicRanges:
     def test_convert_range(self):
         assert self.paired_gencoord2\
                     .convert_range('v5', GenomicRange('2L', 20, 50)) == \
-                                  ('v6', GenomicRange('2L', 111, 141)), \
-                                      'Found {}'.format(
-                self.paired_gencoord2\
-                    .convert_range('v5', GenomicRange('2L', 20, 50)))
+            PairedGenomicRanges(
+                keys=['v5', 'v6'], 
+                ranges=[
+                    GenomicRange('2L', 20, 50),
+                    GenomicRange('2L', 111, 141)
+                ], 
+                is_inversion=True, name=None
+            )
 
 class TestConvertCoordinates:
     """ Unit tests for ConvertCoordinates. """
@@ -158,7 +162,7 @@ class TestConvertCoordinates:
                 [5, 6],
                 [GenomicRange(chromosome='2L', start=1, end=10),
                 GenomicRange(chromosome='2L', start=11, end=20)], 
-                False
+                False, 0
             )
 
         # Another way to input query coordinates: GenomicRange object

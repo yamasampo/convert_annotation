@@ -77,11 +77,12 @@ class GenomicRange(object):
             )
 
 class PairedGenomicRanges(Mapping):
-    def __init__(self, keys, ranges, is_inversion):
+    def __init__(self, keys, ranges, is_inversion, name=None):
         self._keys = tuple(keys)
         self._ranges = tuple(ranges)
         self._pair = dict(zip(keys, ranges))
         self.is_inversion = is_inversion
+        self.name = name
 
     @property
     def keys(self):
@@ -128,7 +129,27 @@ class PairedGenomicRanges(Mapping):
             raise Exception('IndexError found: {} '\
                 'while length is {}'.format(end_ix, len(self[match_key])))
         
-        return match_key, GenomicRange(self[match_key].chromosome, s2, e2)
+        return PairedGenomicRanges(
+            keys=[query_key, match_key],
+            ranges=[
+                query_genomicRange, 
+                GenomicRange(self[match_key].chromosome, s2, e2)],
+            is_inversion=self.is_inversion, 
+            name=self.name
+        )
+
+    def to_Series(self):
+        indices = []
+        data = []
+
+        for key, genrange in self:
+            data += [genrange.chromosome, genrange.start, genrange.end]
+            indices = [f'v{key}_chromosome', f'v{key}_start', f'v{key}_end']
+
+        data += [self.is_inversion]
+        indices += ['strand']
+
+        return pd.Series(data, index=indices, name=self.name)
     
     def __len__(self):
         return len(self._pair)
@@ -335,7 +356,7 @@ class ConvertCoordinates(Database):
                 'or {self.version2}.')
 
     @staticmethod
-    def to_PairedGenomicRanges(row, version1, version2):
+    def to_PairedGenomicRanges(row, version1, version2, name=None):
         keys = [version1, version2]
         ranges = [
             GenomicRange(
@@ -351,7 +372,7 @@ class ConvertCoordinates(Database):
         ]
         is_inversion = True if row['strand'] == '-' else False
 
-        return PairedGenomicRanges(keys, ranges, is_inversion)
+        return PairedGenomicRanges(keys, ranges, is_inversion, name)
 
     def to_list_of_PairedGenomicRanges(self):
         return self.df.apply(lambda x: 
@@ -397,18 +418,10 @@ class ConvertCoordinates(Database):
             )
 
         paired = self.to_PairedGenomicRanges(
-            conv_table.iloc[0], self.version1, self.version2)
+            conv_table.iloc[0], self.version1, self.version2, conv_table.index)
 
         # Return converted coordinates
-        match_version, match_coord = paired.convert_range(
-            query_version, query_coord)
-
-        return PairedGenomicRanges(
-                keys=[query_version, match_version], 
-                ranges=[query_coord, match_coord], 
-                is_inversion=paired.is_inversion
-            )
-
+        return paired.convert_range(query_version, query_coord)
 
     @staticmethod
     def from_query_strs_to_query_coords(query_strs):
@@ -421,17 +434,12 @@ class ConvertCoordinates(Database):
     def from_querys_to_DataFrame(self, query_version, query_strs):
         query_coords = self.from_query_strs_to_query_coords(query_strs)
 
-        concat_list = []
+        concat_list = [
+            pair.to_Series() for parir in 
+            self.convert_coordinate(query_version, query_coords)
+        ]
 
-        for i, pair in enumerate(self.convert_coordinate(
-            query_version, query_coords)):
-            
-            tmp_df = pair.to_DataFrame()
-            tmp_df['pair_id'] = i+1
-            
-            concat_list.append(tmp_df)
-
-        return pd.concat(concat_list).reset_index(drop=True)
+        return pd.concat(concat_list)
                 
     def __repr__(self):
         return '<{name}: {desc} (versions {v1} and {v2}; {size} records)>'.format(
