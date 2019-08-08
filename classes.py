@@ -147,7 +147,7 @@ class PairedGenomicRanges(Mapping):
             indices += [f'v{key}_chr', f'v{key}_start', f'v{key}_end']
 
         data += [self.is_inversion]
-        indices += ['strand']
+        indices += ['is_inversion']
 
         return pd.Series(data, index=indices, name=self.name)
     
@@ -370,7 +370,7 @@ class ConvertCoordinates(Database):
                 row[f'v{version2}_end']
             )
         ]
-        is_inversion = True if row['strand'] == '-' else False
+        is_inversion = True if row['is_inversion'] == '-' else False
 
         return PairedGenomicRanges(keys, ranges, is_inversion, name)
 
