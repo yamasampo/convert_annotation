@@ -398,7 +398,7 @@ class ConvertCoordinates(Database):
             query_version, query_coord.chromosome, 
             query_coord.start, query_coord.end)
 
-        # Get another version
+        # Get an name of the other version
         match_version = self.get_another_version(query_version)
         
         # If query is not found, return -9
