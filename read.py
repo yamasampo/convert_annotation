@@ -1,5 +1,5 @@
 import pandas as pd
-from convert_annotation.classes import ConvertCoordinates
+from .classes import ConvertCoordinates
 
 def from_CSV_to_ConvertCoordinates(csv_path, version1, version2, description=''):
     """ Read CSV file into ConvertCoordinates object. """

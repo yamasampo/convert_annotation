@@ -118,10 +118,14 @@ class TestPairedGenomicRanges:
     def test_convert_range(self):
         assert self.paired_gencoord2\
                     .convert_range('v5', GenomicRange('2L', 20, 50)) == \
-                                  ('v6', GenomicRange('2L', 111, 141)), \
-                                      'Found {}'.format(
-                self.paired_gencoord2\
-                    .convert_range('v5', GenomicRange('2L', 20, 50)))
+            PairedGenomicRanges(
+                keys=['v5', 'v6'], 
+                ranges=[
+                    GenomicRange('2L', 20, 50),
+                    GenomicRange('2L', 111, 141)
+                ], 
+                is_inversion=True, name=None
+            )
 
 class TestConvertCoordinates:
     """ Unit tests for ConvertCoordinates. """
@@ -154,31 +158,83 @@ class TestConvertCoordinates:
     def test_convert_coordinate(self):
         # Test 5 to 6 conversion
         assert self.cc.convert_coordinate(5, '2L:1..10') == \
-            (6, GenomicRange(chromosome='2L', start=11, end=20))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=1, end=10),
+                GenomicRange(chromosome='2L', start=11, end=20)], 
+                False, 0
+            )
 
         # Another way to input query coordinates: GenomicRange object
         assert self.cc.convert_coordinate(
             5, GenomicRange(chromosome='2L', start=1, end=10)) == \
-            (6, GenomicRange(chromosome='2L', start=11, end=20))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=1, end=10),
+                GenomicRange(chromosome='2L', start=11, end=20)],
+                False
+            )
 
         # Another way to input query coordinates: specify each property
         assert self.cc.convert_coordinate(
             5, query_chr='2L', query_start=1, query_end=10) == \
-            (6, GenomicRange(chromosome='2L', start=11, end=20))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=1, end=10),
+                GenomicRange(chromosome='2L', start=11, end=20)], 
+                False
+            )
 
         # Test 6 to 5 conversion
         assert self.cc.convert_coordinate(6, '2L:11..15') == \
-            (5, GenomicRange(chromosome='2L', start=1, end=5))
+            PairedGenomicRanges(
+                [6, 5], 
+                [GenomicRange(chromosome='2L', start=11, end=15),
+                GenomicRange(chromosome='2L', start=1, end=5)],
+                False
+            )
 
         # Test chromosoem changes
         assert self.cc.convert_coordinate(5, '2L:23..27') == \
-            (6, GenomicRange(chromosome='2R', start=24, end=28))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='2L', start=23, end=27),
+                GenomicRange(chromosome='2R', start=24, end=28)],
+                False
+            )
         
         # Test duplication in one version
         assert self.cc.convert_coordinate(6, '2R:25..30') == \
-            (5, GenomicRange(chromosome=-8, start=-8, end=-8))
+            PairedGenomicRanges(
+                [6, 5],
+                [GenomicRange(chromosome='2R', start=25, end=30),
+                GenomicRange(chromosome=-8, start=-8, end=-8)],
+                -9
+            )
 
         # Test the case where query is not found in the list
         assert self.cc.convert_coordinate(5, '3L:100..200') == \
-            (6, GenomicRange(chromosome=-9, start=-9, end=-9))
+            PairedGenomicRanges(
+                [5, 6],
+                [GenomicRange(chromosome='3L', start=100, end=200),
+                GenomicRange(chromosome=-9, start=-9, end=-9)],
+                -9
+            )
+    def test_from_querys_to_DataFrame(self):
+        query_strs = [
+            '2L:1..10', '2L:23..27', '3L:100..200'
+        ]
+
+        expect_df = pd.DataFrame(
+            [['2L', 1, 10, '2L', 11, 20, False],
+             ['2L', 23, 27, '2R', 24, 28, False],
+             ['3L', 100, 200, -9, -9, -9, -9]], 
+            columns=[
+                'v5_chr', 'v5_start', 'v5_end', 
+                'v6_chr', 'v6_start', 'v6_end', 'strand'],
+            index=[0, 1, -9]
+        )
+
+        assert self.cc.from_querys_to_DataFrame(5, query_strs).all().all() == \
+            expect_df.all().all()
 
