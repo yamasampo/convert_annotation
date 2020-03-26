@@ -1,5 +1,5 @@
-from convert_annotation import read
-from convert_annotation import formatter
+from . import read
+from . import formatter
 
 def main(map_csv_path, query_version, ref_version, 
     query_path, out_csv_path, description=''):
