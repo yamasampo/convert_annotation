@@ -6,7 +6,9 @@ def main(
         query_version:str, 
         ref_version:str, 
         query_path:str, 
-        out_csv_path:str):
+        out_csv_path:str, 
+        **kwargs
+        ):
     """ Outputs a file with converted coordinates from a given query file. 
     
     Parameters
@@ -25,9 +27,9 @@ def main(
     
     """
     cc = read.from_CSV_to_ConvertCoordinates(
-        map_csv_path, query_version, ref_version, description='')
+        map_csv_path, query_version, ref_version)
 
-    querys = read.parse_query_list(query_path)
+    querys = read.parse_query_list(query_path, **kwargs)
 
     paired_gen_coord_list = cc.recursively_get_dmel_coordinates(
         query_version, ref_version, querys)
