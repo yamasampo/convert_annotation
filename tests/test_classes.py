@@ -30,8 +30,7 @@ class TestGenomicRange:
         assert self.gencood.end == 10
 
     def test_from_str(self):
-    	assert self.gencood.from_str('3R:100..200') == \
-            GenomicRange('3R', 100, 200)
+        assert self.gencood.from_str('3R:100..200') == GenomicRange('3R', 100, 200)
 
     def test_get_index(self):
         assert self.gencood.get_index(3) == 2
